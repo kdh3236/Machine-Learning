@@ -1,9 +1,9 @@
 import tensorflow as tf
 
 # 커스텀 Dense 레이어 정의: 모든 입력 뉴런이 모든 출력 뉴런과 완전히 연결(fully connected) 되는 구조
-class MyDenseLayer(tf.keras.layers.Layer):
+class MyDenseLayer(tf.keras.layers.Layer): # tf.keras.layers.Layer를 부모 클래스로 하는 새로운 클래스 생성
     def __init__(self, input_dim, output_dim):
-        super(MyDenseLayer, self).__init__()
+        super(MyDenseLayer, self).__init__() # 부모 클래스의 기능을 가져옴
 
         # Initialize weights and bias
         self.W = self.add_weight(shape=[input_dim, output_dim], initializer="random_normal")
@@ -18,12 +18,12 @@ class MyDenseLayer(tf.keras.layers.Layer):
 
         return output
 
-# 기본적인 Dense 레이어 예제
-layer = tf.keras.layers.Dense(units=2)
+# 기본적인 Dense 레이어 예제 
+layer = tf.keras.layers.Dense(units=2) # 출력 차원이 2
 
-# 모델 정의 (얕은 신경망)
+# 모델 정의 (얕은 신경망) - layer을 연결 
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(64, activation="relu"),  # 입력 크기 자동 감지
+    tf.keras.layers.Dense(64, activation="relu"),  # (뉴런 개수, active function)
     tf.keras.layers.Dense(2, activation="softmax")  # 출력층 (분류 문제)
 ])
 
@@ -43,10 +43,11 @@ def cross_entropy_loss(y_true, y_pred):
 
 # 평균 제곱 오차 (회귀)
 def mse_loss(y_true, y_pred):
-    return tf.reduce_mean(tf.square(tf.subtract(y_true, y_pred)))
+    return tf.reduce_mean(tf.square(tf.subtract(y_true, y_pred))) # 평균 계산하는 함
 
 # 경사 하강법 직접 구현
-weights = tf.Variable(tf.random.normal([1]))
+weights = tf.Variable(tf.random.normal([1])) # 학습 가능한 변수 선언
+# tf.constant() 는 tf.Variable의 반대로 학습 가능하지 않은  
 
 learning_rate = 0.01  # 학습률
 
@@ -55,11 +56,13 @@ def compute_loss(weights):
     return tf.reduce_sum(tf.square(weights - 5))  # 가중치가 5가 되는 것이 목표
 
 while True:
+    # 자동으로 리소스 관리, with 문 종료 시 자동 소멸 / close, watch를 따로 사용할 필요 없음 
     with tf.GradientTape() as g:
         loss = compute_loss(weights)
         gradient = g.gradient(loss, weights)  # 편미분
 
     weights.assign_sub(learning_rate * gradient)  # 가중치 업데이트
+    # assign_sub > x -= (learning_rate * gradient) 를 계산
 
     # 학습이 충분하면 종료 (임시 조건)
     if loss.numpy() < 0.01:
