@@ -1,1 +1,10 @@
+num_ensembles = 5
 
+for i in range(num_ensembles):
+  model = create_model(...)
+  model.fit(...)
+
+raw_preditions = [models[i].predict(x) for i in range(num_ensembles)]
+
+mu = np.mean(raw_predictions)
+uncertainty = np.array(raw_predictions)
