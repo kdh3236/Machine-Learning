@@ -10,7 +10,7 @@
 
 **2025년도**
 
-3. _MIT S.191_ 강의 수강 (Deep learning 기초 이론)
+3. _MIT 6.S191_ 강의 수강 (Deep learning 기초 이론)
 4. 머신 러닝 교과서 - 파이토치편 (세바스찬 라시카 작)
 5. _Stanford cs231n_ 강의 수강
 
