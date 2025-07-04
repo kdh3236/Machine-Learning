@@ -9,13 +9,14 @@
 2. _미적분학, 선형대수학, 확률과 통계_ 복습
     - 확률과 통계는 Stanford - Introduction to Statistics 강의 수강
     - 미적분학, 선형대수학은 학부 강의 복습
+3. _`Numpy`, `Pandas`, `Seaborn`, `Matplot`_ 주요 함수 공부 
 
 **2025년도**
 
-3. _MIT 6.S191_ 강의 수강 (Deep learning 기초 이론)
-4. _학부 기계학습 알고리즘_ 강의 수강 (CSE_23 Repository에 공부 필기 저장) 
-5. 머신 러닝 교과서 - 파이토치편 (세바스찬 라시카 작)
-6. _Stanford cs231n_ 강의 수강
+4. _MIT 6.S191_ 강의 수강 (Deep learning 기초 이론)
+5. _학부 기계학습 알고리즘_ 강의 수강 (CSE_23 Repository에 공부 필기 저장) 
+7. 머신 러닝 교과서 - 파이토치편 (세바스찬 라시카 작)
+8. _Stanford cs231n_ 강의 수강
 
 
 **프로젝트**
