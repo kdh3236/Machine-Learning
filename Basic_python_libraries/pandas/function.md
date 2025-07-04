@@ -223,3 +223,104 @@ ___
     - **-1~1 사이의 범위**를 가집니다.
     - -1에 가까울 수록 두 column은 `반비례 관계`, 1에 가까울수록 `정비례 관계`를 의미합니다.
     - `corr()`은 **column 개수 x column 개수** 형태의 표를 반환하기 때문에, 특정 column과 나머지 column에 대한 정보만을 확인하고 싶다면 `df.corr()['survived']` 같이 작성해야 한다.
+
+## 추가 유용한 함수
+- `copy()`: 기존 DataFrame을 복사한 복제본을 생성. 복제본에 대한 **수정은 원본에 영향을 미치지 않는다.**
+
+- `fillna()`: Nan에 해당하는 값을 특정 값으로 채울 수 있다.
+    - argument에 사용된 값으로 채워진다.
+    - `통계 함수`를 사용해서 채울 수도 있다.
+    - 이때, 최빈값의 경우에는 `fillna(df[].mode()[0])`와 같이 0번째 index를 사용해야 한다.
+- `dropna()`: Nan이 포함된 행을 제거하고 반환한다.
+
+## 데이터 전처리
+
+DataFrame에 없는 column명으로 `df['column name'] = value`를 사용하면 새로운 column을 생성할 수 있다.
+
+- `insert(컬럼인덱스, 컬럼명, 값)`: 새로운 column을 생성한다.
+
+- `drop(index)`: index에 따라 행을 삭제한다. index는 `DataFrame`에 사용 가능한 indexing 방법 모두 사용 가능하다.
+
+- `drop(column name, axis = 1)`: `axis = 1` 옵션 사용 시, column 제거가 가능하다.
+
+**Column간 연산**
+> 단순히 column 별로 `+` 연산자를 통해, 값을 더하거나 문자열을 이어 붙일 수 있다.
+- 이때, 여러 column 중 하나의 column이라도 Nan 값을 가지고 있다면 연산 결과는 Nan으로 처리된다.
+
+- 연산 시, `round(숫자, 소수 몇 째자리)` 를 통해 소수점 아래 자릿수도 지정할 수 있다.
+
+
+#### `useful functions`
+
+- `pd.cut(x, bins, right=True)`: x를 bins 내에 있는 구간 별로 나눈다.
+
+- `qcut()`: `cut()`와 동일한 기능, 각 그룹 내의 데이터 개수가 동일하도록 한다. 
+
+- `concat()` 2개 이상의 DataFrame을 행 혹은 열 방향으로 연결
+
+- `merge()` 2개의 DataFrame을 특정 Key를 기준으로 병합
+
+
+## Group By
+> DataFrame에서 특정 column이 기준 row가 된 표로 나타날 수 있도록 한다.
+
+`Example`
+```python
+df.groupby(['sex', 'pclass']).mean()
+
+
+[출력]
+            survived	age	        sibsp	    parch	
+sex  pclass 							
+female	1	0.968085	34.611765	0.553191	0.457447	
+        2	0.921053	28.722973	0.486842	0.605263	
+        3	0.500000	21.750000	0.895833	0.798611	
+male	1	0.368852	41.281386	0.311475	0.278689	
+        2	0.157407	30.740707	0.342593	0.222222	
+        3	0.135447	26.507589	0.498559	0.224784
+```
+## Pivot Table
+
+> GroupBy + Aggregation 을 수행하는 함수
+```
+df = pd.DataFrame({
+    "과목": ["수학", "수학", "영어", "영어"],
+    "반":   ["A", "B", "A", "B"],
+    "점수": [80, 90, 70, 85]
+})
+
+pd.pivot_table(df, values="점수", index="과목", columns="반", aggfunc="mean")
+
+[결과]
+반     A     B
+과목
+수학  80.0  90.0
+영어  70.0  85.0
+```
+
+## 데이터 시각화
+
+> `plot()` 함수 내에 `kind=` 옵선을 다르게 설정하여 사용할 수 있다.
+
+사용 가능한 옵션은 아래와 같다.
+
+- `line`: 선그래프
+
+- `bar`: 바 그래프
+
+- `barh`: 수평 바 그래프
+
+- `hist`: 히스토그램
+
+- `kde`: 커널 밀도 그래프
+
+- `hexbin`: 고밀도 산점도 그래프
+
+- `box`: 박스 플롯
+
+- `area`: 면적 그래프
+
+- `pie`: 파이 그래프
+
+- `scatter`: 산점도 그래프
+
