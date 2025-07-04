@@ -5,18 +5,18 @@
 ## 타임라인
 
 **2024년도**
-1. _학부 인공지능_ 강의 구상 (CSE_23 Repository에 공부 필기 저장)
-2. _미적분학, 선형대수학, 확률과 통계_ 복습
-    - 확률과 통계는 Stanford - Introduction to Statistics 강의 수강
+1. _**학부 인공지능_ 강의** 수강 (CSE_23 Repository에 공부 필기 저장)
+2. **_`미적분학`, `선형대수학`, `확률과 통계`_** 복습
+    - 확률과 통계는 **Stanford - Introduction to Statistics** 강의 수강
     - 미적분학, 선형대수학은 학부 강의 복습
-3. _`Numpy`, `Pandas`, `Seaborn`, `Matplot`_ 주요 함수 공부 
+3. **_`Numpy`, `Pandas`, `Seaborn`, `Matplot`_** 주요 함수 공부 
 
 **2025년도**
 
-4. _MIT 6.S191_ 강의 수강 (Deep learning 기초 이론)
-5. _학부 기계학습 알고리즘_ 강의 수강 (CSE_23 Repository에 공부 필기 저장) 
-7. 머신 러닝 교과서 - 파이토치편 (세바스찬 라시카 작)
-8. _Stanford cs231n_ 강의 수강
+4. **_`MIT 6.S191`_ 강의** 수강 (Deep learning 기초 이론)
+5. _**학부 기계학습 알고리즘_ 강의** 수강 (CSE_23 Repository에 공부 필기 저장) 
+7. **`머신 러닝 교과서 - 파이토치편`** (세바스찬 라시카 작)
+8. **_`Stanford cs231n`_ 강의** 수강
 
 
 **프로젝트**
