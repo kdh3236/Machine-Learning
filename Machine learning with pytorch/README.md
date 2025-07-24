@@ -6,4 +6,6 @@ ___
 
 - `pytorch` 학습이 주목적이기 때문에, `sklearn`은 한 번 살펴보는 느낌으로 **clone coding** 했다.
 
-  
+
+___
+**Deep Learning** 파트는 코드 + 개념 모두 중점적으로 공부했다. 
