@@ -125,13 +125,17 @@ print(response['message']['content'])
 
 ## Day4
 
+LLM은 **Attention -> Transformer**의 등장으로 발전하기 시작했다.
+
+LLM의 버전이 향상될수록 Parameters의 개수가 증가한다.
+
 **Context Window**: 모델이 텍스트를 생성하거나 이해할 때 입력으로 받을 수 있는 양
 
 - 다음 Token을 생성하기 위해 이전에 존재하는 Token의 개수
 
 - ChatGPT의 경우에, 새로운 질문을 할 때 이전 모든 대화에 현재 질문이 추가되어 하나의 긴 Prompt가 생성된다.
 
-- **지금까지의 모든 대화와 입력, 다음 토큰을 예측 할 때까지의 모든 대화**를 Context Window라고 한다.
+- **지금까지의 모든 대화와 입력 등을 기반으로 다음 토큰을 예측 할 때까지의 모든 대화**를 Context Window라고 한다.
 
 
 
