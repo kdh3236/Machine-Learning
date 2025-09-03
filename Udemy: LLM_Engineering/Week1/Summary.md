@@ -29,7 +29,14 @@ messages = [
 ]
 
 # 아래 코드를 통해 채팅이 가능
-response = openai.chat.completions.create(model="gpt-4o-mini", messages=messages)
+# reponse_format을 통해 응답 형식을 지정할 수 있다.
+# stream=True라면 Model의 대답이 Chunk 단위로 나누어 즉시 전송된다.
+response = openai.chat.completions.create(
+   model="gpt-4o-mini",
+   messages=messages,
+   response_format={"type": json_object},
+   stream=True
+)
 print(response.choices[0].message.content)
 ```
 
@@ -172,6 +179,7 @@ LLM의 버전이 향상될수록 **Parameters의 개수가 증가**한다.
 
 **One-shot Prompting**: Prompt를 입력할 때, 예시도 함께 제시하는 방법
 
+**System Prompt**를 통해 모델의 답변의 형식, 말투 등을 설정할 수 있다.
 
 
 
