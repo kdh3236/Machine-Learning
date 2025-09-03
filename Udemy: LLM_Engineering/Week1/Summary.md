@@ -170,6 +170,8 @@ LLM의 버전이 향상될수록 **Parameters의 개수가 증가**한다.
 
 ## Day5
 
+**One-shot Prompting**: Prompt를 입력할 때, 예시도 함께 제시하는 방법
+
 
 
 
