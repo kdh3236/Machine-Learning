@@ -104,3 +104,13 @@ import ollama
 response = ollama.chat(model=MODEL, messages=messages)
 print(response['message']['content'])
 ```
+
+## Day3
+
+**Context Window**
+
+- 다음 Token을 생성하기 위해 이전에 존재하는 Token의 개수
+
+- ChatGPT의 경우에, 새로운 질문을 할 때 이전 모든 대화에 현재 질문이 추가되어 하나의 긴 Prompt가 생성된다.
+
+- **지금까지의 모든 대화와 입력, 다음 토큰을 예측 할 때까지의 모든 대화**를 Context Window라고 한다. 
