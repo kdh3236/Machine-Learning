@@ -127,7 +127,36 @@ print(response['message']['content'])
 
 LLM은 **Attention -> Transformer**의 등장으로 발전하기 시작했다.
 
-LLM의 버전이 향상될수록 Parameters의 개수가 증가한다.
+LLM의 버전이 향상될수록 **Parameters의 개수가 증가**한다.
+
+**Token**
+
+- 초기 Neural Networks는 문자별로 Training 되었다.
+
+   - 그리나, 이 방법은 각 문자들을 단어로 구성하고 연속적인 의미를 이해해야 하는 등 요구되는게 많았다.
+ 
+- 다음으로 Word 단위로 Training을 하기 시작하였다.
+
+   - 그러나, 한 Word가 문맥에 따라 다른 의미를 가질 수 있고, 장소나 이름 등의 모르는 단어에 대한 표시가 부족했다.
+ 
+- 마지막으로 Token을 이용한다.
+
+   - Token은 **정확히 하나의 단어**로 이루어질 수도 있고, **단어의 일부**로 이루어질 수도 있다.
+ 
+   - 흔한 단어인 경우, 각 단어가 하나의 Token에 대응된다.
+ 
+   - Token이 단어의 시작을 나타내는 경우, **띄어쓰기 또한 의미 해석에 중요한 역할을 하기 때문에 Token의 가장 앞이 빈칸**이 된다.
+ 
+   - 중간부터 시작하는 Token은 가장 앞이 빈칸이 아니다.
+ 
+**Rule-of-thumb for English Writing (GPT)**
+
+- 1 token ~~ 4 Characters
+- 1 token ~~ 0.75 words
+- 1000 tokens ~~ 750 words
+
+일반적으로 Symbol이나 수식을 표현하기 위해선 더 많은 Token이 필요하다.
+  
 
 **Context Window**: 모델이 텍스트를 생성하거나 이해할 때 입력으로 받을 수 있는 양
 
