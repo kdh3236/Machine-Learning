@@ -181,5 +181,5 @@ LLM의 버전이 향상될수록 **Parameters의 개수가 증가**한다.
 
 **System Prompt**를 통해 모델의 답변의 형식, 말투 등을 설정할 수 있다.
 
-
+**Multi-shot Prompting**: Prompt에 대한 하나의 예시만 주는 것이 아니라, 여러 예시를 제공하는 방법
 
