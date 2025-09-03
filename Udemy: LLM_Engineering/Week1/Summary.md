@@ -107,10 +107,32 @@ print(response['message']['content'])
 
 ## Day3
 
-**Context Window**
+**Frontier LLMs의 성능**
+
+1. Synthesizing Information: 정보를 구조화해서 서치하고, 연구하여 요약하여 답한다.
+
+2. Fleshing out a skeleton: 몇몇 간단한 노트로부터 구조화된 결과물을 낼 수 있다.
+
+3. Coding
+
+**Frontier Model의 한계**
+
+1. 대부분의 특정 Domain에 대해 전문적이지 않다.
+
+2. Recent Events에 즉각적으로 대응할 수 없다.
+
+3. Some Mistakes
+
+## Day4
+
+**Context Window**: 모델이 텍스트를 생성하거나 이해할 때 입력으로 받을 수 있는 양
 
 - 다음 Token을 생성하기 위해 이전에 존재하는 Token의 개수
 
 - ChatGPT의 경우에, 새로운 질문을 할 때 이전 모든 대화에 현재 질문이 추가되어 하나의 긴 Prompt가 생성된다.
 
-- **지금까지의 모든 대화와 입력, 다음 토큰을 예측 할 때까지의 모든 대화**를 Context Window라고 한다. 
+- **지금까지의 모든 대화와 입력, 다음 토큰을 예측 할 때까지의 모든 대화**를 Context Window라고 한다.
+
+
+
+
