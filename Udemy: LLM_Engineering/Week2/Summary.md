@@ -247,3 +247,29 @@ def handle_tool_call(message):
     }
     return response, city
 ```
+
+## Day5
+
+openai package에서 `openai.image.generate()`를 사용하여 **Prompt에 맞는 Image를 생성**할 수 있다.
+
+```python
+image_response = openai.images.generate(
+      model="dall-e-3",
+      prompt=f"~",
+      size="1024x1024",
+      # 생성할 이미지의 개수
+      n=1,
+      # Encode Format
+      response_format="b64_json",
+)
+```
+
+`image_response.data[0].b64_json`을 통해 Encode된 이미지를 가져올 수 있다.
+
+이를 `base64.b64decode(image_base64)`를 통해 Decode할 수 있다.
+
+
+마찬가지로 `openai.audio.speech.create()`를 통해 **오디오를 생성**할 수 있다.
+
+
+
