@@ -4,7 +4,7 @@ GPT와 OLLAMA에 이어서 **Claude API를 사용하는 방법**을 알아보자
 
 openai와 다르게 **max_token이 명시**되어야 하고, **system_prompt를 user_prompt와 구별**하여 입력해야 한다.
 
-- max_token은 출력 Token의 최대 개수를 의미한다.
+- max_token은 **출력 Token의 최대 개수**를 의미한다.
 
 ```python
 message = claude.messages.create(
@@ -52,7 +52,7 @@ response = gemini.generate_content(user_prompt)
 print(reponse.text)
 ```
 
-아래 코드처럼 OpenAI Libaray를 이용하여 Google API KEY를 사용할 수도 있다.
+아래 코드처럼 **OpenAI Libaray를 이용**하여 Google API KEY를 사용할 수도 있다.
 
 ```python
 gemini_via_openai_client = OpenAI(
@@ -67,7 +67,7 @@ response = gemini_via_openai_client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-여러 명이 대화한다고 생각한다면, 단순히 system/user prompt로 나누는 것이 아니라 assistant와 추가적인 user prompt를 사용할 수 있다.
+여러 명이 대화한다고 생각한다면, 단순히 system/user prompt로 나누는 것이 아니라 **assistant와 추가적인 user prompt**를 사용할 수 있다.
 
 ```
 [
