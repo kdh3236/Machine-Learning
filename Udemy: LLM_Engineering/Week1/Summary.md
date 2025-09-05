@@ -31,11 +31,13 @@ messages = [
 # 아래 코드를 통해 채팅이 가능
 # reponse_format을 통해 응답 형식을 지정할 수 있다.
 # stream=True라면 Model의 대답이 Chunk 단위로 나누어 즉시 전송된다.
+# temperture는 0~2 사이 실수값을 가지고, 2에 가까울수록 모델에 창의성이 부여된다.
 response = openai.chat.completions.create(
    model="gpt-4o-mini",
    messages=messages,
    response_format={"type": json_object},
-   stream=True
+   stream=True,
+   temperture=0.7
 )
 print(response.choices[0].message.content)
 ```
