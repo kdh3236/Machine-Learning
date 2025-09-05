@@ -117,7 +117,7 @@ function refresh() {
 gr.Interface(fn=shout, inputs="textbox", outputs="textbox", flagging_mode="never", js=force_dark_mode).launch()
 ```
 
-Input와 output의 줄 위치도 정할 수 있고, Labeling도 할 수 있다.
+Input와 output의 **줄 위치도** 정할 수 있고, **Labeling**도 할 수 있다.
 
 - Input와 Output의 개수는 하나가 아니여도 된다. 여러개인 경우 List의 Element로 넘겨주면 된다.
 
