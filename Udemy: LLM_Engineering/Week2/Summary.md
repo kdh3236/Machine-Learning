@@ -77,3 +77,58 @@ print(response.choices[0].message.content)
   {"role": "user", "content":}
 ]
 ```
+
+## Day2
+
+**Gradio**: 머신러닝 및 딥러닝 모델을 쉽게 배포하고 웹 인터페이스를 생성할 수 있도록 도와주는 Python 라이브러리
+
+```python
+import gradio as gr
+
+# fn: 함수, inputs, outputs: 입출력의 데이터 타입
+# flagging_mode="never": 빈공간이 없도록 한다.
+# share=True: 내 Local 주소뿐만 아니라, 다른 사람들에게 공유할 수 있는 URL 생성
+gr.Interface(fn=함수명, inputs="textbox", outputs="textbox", flagging_mode="never").launch(share=True)
+
+# 생성한 웹 UI를 Broswer로 바로 연다.
+gr.Interface(fn=함수명, inputs="textbox", outputs="textbox", flagging_mode="never").launch(inbrowser=True)
+```
+
+**launch(share=True)를** 이용하여 실행하면, 아래와 같이 두 가지 웹 URL이 뜬다. 
+
+- Running on local URL:  http://127.0.0.1:7861
+- Running on public URL: https://c1f6ab5bdc2722c539.gradio.live
+
+특이하게도, **Public URL에 들어가서 실행해도, Local을 거쳐서 실행**하게 된다.
+- URL에서 함수를 실행하면, 함수의 실행 결과가 Local shell에 뜨게 된다.
+
+아래와 같은 방법으로 **Dark Mode로 설정**할 수도 있다.
+
+```python
+force_dark_mode = """
+function refresh() {
+    const url = new URL(window.location);
+    if (url.searchParams.get('__theme') !== 'dark') {
+        url.searchParams.set('__theme', 'dark');
+        window.location.href = url.href;
+    }
+}
+"""
+gr.Interface(fn=shout, inputs="textbox", outputs="textbox", flagging_mode="never", js=force_dark_mode).launch()
+```
+
+Input와 output의 줄 위치도 정할 수 있고, Labeling도 할 수 있다.
+
+- Input와 Output의 개수는 하나가 아니여도 된다. 여러개인 경우 List의 Element로 넘겨주면 된다.
+
+```python
+view = gr.Interface(
+    fn=message_gpt,
+    inputs=[gr.Textbox(label="Your message:", lines=6)],
+    outputs=[gr.Textbox(label="Response:", lines=8)],
+    flagging_mode="never"
+)
+view.launch()
+```
+
+추가로, `gr.Markdown`을 통해 **마크다운 형식**으로 답변을 받을 수도 있다.
