@@ -134,3 +134,25 @@ view.launch()
 추가로, `gr.Markdown`을 통해 **마크다운 형식**으로 답변을 받을 수도 있다.
 
 `gr.Dropdown([선택지1, 선택지2])`를 통해 선택할 수 있도록 할 수도 있다.
+
+## Day3
+
+`ChatInterface(type="messages")`를 사용하면 **챗봇 형태의 결과물**을 얻을 수 있다.
+
+```python
+gr.ChatInterface(fn=chat, type="messages").launch()
+```
+
+**Q) 아래 형식의 Messages를 LLM이 어떻게 이해하는 것일까? (GPT를 예시로)**
+
+[
+    {"role": "system", "content": "system message here"},
+    {"role": "user", "content": "first user prompt here"},
+    {"role": "assistant", "content": "the assistant's response"},
+    {"role": "user", "content": "the new user prompt"},
+]
+
+A) 위의 Messages를 **Token의 연속**으로 바꾼다. **System prompt에는 특별한 표시(구분)가 있는 Token**을 사용하여, Training을 통해 **System prompt에서 특별한 지시를 받았다면 다음 Token은 System prompt 따라야한다는 것을 학습**한다.
+
+
+## Day4
