@@ -97,3 +97,11 @@ token = tokenizer.apply_chat_template(my_messages, tokenize=False, add_generatio
 ## Day4
 
 **Models**: Tokenizer를 통해 Token을 생성하고, Model을 불러와서 Inference를 진행할 수 있도록 한다.
+
+Open-source Models을 사용할 때, **신경써야 할 부분**이 있다.
+ 
+- **Quantization**: 모델의 무게를 줄여 Memory 부담을 줄이고 더 빠르게 동작할 수 있도록 하는 작업
+
+- **Model Internals**: 모델의 구조와 구현 자체
+
+- **Streaming**: 생성 결과를 Streaming 
