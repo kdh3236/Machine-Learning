@@ -89,6 +89,7 @@ tokenizer = AutoTokenizer.from_pretrained('model_name', trust_remote_code=True)
 text = tokenizer.apply_chat_template(my_messages, tokenize=False, add_generation_prompt=True)
 
 # tokenize=True: Token으로 반환
+# return_tensors="pt" 옵션을 통해, Pytorch tensor로 반환받을 수 있다. 
 token = tokenizer.apply_chat_template(my_messages, tokenize=False, add_generation_prompt=True)
 
 # 이 경우, model.generate(**token)을 통해 Inference를 진행할 수 있다. 
@@ -104,4 +105,66 @@ Open-source Models을 사용할 때, **신경써야 할 부분**이 있다.
 
 - **Model Internals**: 모델의 구조와 구현 자체
 
-- **Streaming**: 생성 결과를 Streaming 
+- **Streaming**: 생성 결과를 Streaming
+
+
+Model을 가볍게 만들기 위해 **Quantization Config**를 설정할 수 있다.
+
+일반적으로 Model의 Weight는 **4/2 Byte**로 Load 되는데, 아래 Config를 이용하면 이를 **0.5 Byte**로 Load하게 된다.
+
+- 이 경우, **정확도는 비교적 낮아지지만, 모델 메모리가 크게 감소**하게 된다.
+
+```python
+quant_config = BitsAndBytesConfig(
+    # Model Weight를 4Bit로 Load
+    load_in_4bit=True,
+    # 한번 추가적인 Quantization
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    # NF4(NormalFloat4): 4-비트 포맷
+    bnb_4bit_quant_type="nf4"
+)
+
+# 일부 LLM에는 pad_token이라는 길이를 맞추기 위한 Token이 존재
+# Llama에는 pad_token이 존재하지 않아 eos_token(end of sequence)를 삽입
+tokenizer.pad_token = tokenizer.eos_token
+
+# AutoModelForCausalLm(): Huggingface의 모델과 Config를 불러
+# device_map="auto": GPU가 사용 가능하면 GPU를 우선 사용 
+model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", quantization_config=quant_config)
+
+# get_memory_footprint(): Model의 Memory 크기를 확인할 수 있다.
+model.get_memory_footprint()
+```
+
+이후. `model.generate()` 함수를 통해 Output을 생성할 수 있다.
+
+```python
+# Tokenizer 형식에 맞추어 Token을 입력받아 화면에 Streaming
+streamer = TextStreamer(tokenizer)
+
+# max_new_tokens: 새로 생성할 최대 Token 개수
+# 생성된 Output은 Token 형태이기 때문에, Decode 해야 한다.
+model.generate(input, max_new_tokens=500, streamer=streamer)
+```
+
+model을 다 사용하고 난 이후에는 Resource를 정리해야 한다.
+
+```python
+# Referecnce 삭제
+del model, inputs, tokenizer, outputs
+# Garbage Collector
+gc.collect()
+# pytorch가 잡고있던 cache를 반환
+torch.cuda.empty_cache()
+```
+
+## Day5
+
+Frontier Model으로 Audio를 분석하고, Open Source Model으로 Summary하는 Project
+
+
+```python
+# 음성 -> 텍스트
+openai.audio.transcriptions.create(model=AUDIO_MODEL, file=audio_file, response_format="text")
+```
