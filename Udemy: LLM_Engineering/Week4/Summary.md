@@ -75,3 +75,5 @@ Benchmark는 비교에 유용하지만, **아래와 같은 문제점**이 있다
 ## Day3
 
 Frontier Model을 이용하여 Python -> CPP Code 변환기 만드는 Project 진행
+
+Gradio에서 생성한 변수에 대해 `.click(function, input, output)`을 통해 클릭하면 해당 함수를 실행하도록 할 수 있다.
