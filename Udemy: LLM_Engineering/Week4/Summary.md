@@ -77,3 +77,14 @@ Benchmark는 비교에 유용하지만, **아래와 같은 문제점**이 있다
 Frontier Model을 이용하여 Python -> CPP Code 변환기 만드는 Project 진행
 
 Gradio에서 생성한 변수에 대해 `.click(function, input, output)`을 통해 클릭하면 해당 함수를 실행하도록 할 수 있다.
+
+## Day4
+
+Open-source Model을 이용하여 Python -> CPP Code 변환기 만드는 Project 진행
+
+**Hugging Face Inference Endpoints**에서 모델, 사양, Cloud Server (모델을 돌릴 위치)를 고르고 생성한다.
+- 이 과정을 진행하면, RUNNING 상태로 변하고 URL이 표시된다.
+
+이후, python의 requests를 통해, URL과 연결하고, 모델을 호출한다.
+
+
