@@ -67,3 +67,9 @@ Benchmark는 비교에 유용하지만, **아래와 같은 문제점**이 있다
 **Huggingface의 Leaderboard/LLM Benchmark**를 통해 여러 Model을 여러 Benchmark로 평가하고 순위를 매긴 결과를 살펴볼 수 있다.
 
 - Model의 종류, Parameter의 개수, Benchmark 종류 등을 선택할 수 있다.
+
+## Day2
+
+**LMSYS Chatbot Arena**: 사용자가 웹에서 두 모델의 답변을 블라인드로 나란히 비교하고 더 좋은 쪽에 투표하면, 그 사람 선호(pairwise preference) 를 모아 순위를 매김
+
+## Day3
