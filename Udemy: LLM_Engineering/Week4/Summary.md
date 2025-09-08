@@ -85,6 +85,19 @@ Open-source Model을 이용하여 Python -> CPP Code 변환기 만드는 Project
 **Hugging Face Inference Endpoints**에서 모델, 사양, Cloud Server (모델을 돌릴 위치)를 고르고 생성한다.
 - 이 과정을 진행하면, RUNNING 상태로 변하고 URL이 표시된다.
 
+- 공용 API를 사용하던 기존 방법 대신, **Dedicated Endpoint**를 생성해 보안, 안정성, 성능 등에 유리하다.
+
 이후, python의 requests를 통해, URL과 연결하고, 모델을 호출한다.
 
+위처럼 생성한 Endpoint URL을 이용하여 Model을 쉽게 호출하고 Input에 대해 쉽게 Inference 할 수 있다.
 
+- `InferenceClient`를 이용한다.
+- 추론 API/엔드포인트를 HTTP로 쉽게 호출하도록 도와준다.
+
+```python
+client = InferenceClient(CODE_QWEN_URL, token=hf_token)
+# details=True: 종료 이유, 생성 Prompt 개수, seed 등의 Detail이 Text와 함께 Return 됨
+stream = client.text_generation(text, stream=True, details=True, max_new_tokens=3000)
+```
+
+## Day5
