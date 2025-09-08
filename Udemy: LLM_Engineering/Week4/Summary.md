@@ -73,3 +73,5 @@ Benchmark는 비교에 유용하지만, **아래와 같은 문제점**이 있다
 **LMSYS Chatbot Arena**: 사용자가 웹에서 두 모델의 답변을 블라인드로 나란히 비교하고 더 좋은 쪽에 투표하면, 그 사람 선호(pairwise preference) 를 모아 순위를 매김
 
 ## Day3
+
+Frontier Model을 이용하여 Python -> CPP Code 변환기 만드는 Project 진행
