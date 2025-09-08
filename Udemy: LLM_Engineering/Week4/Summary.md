@@ -101,3 +101,13 @@ stream = client.text_generation(text, stream=True, details=True, max_new_tokens=
 ```
 
 ## Day5
+
+모델을 평가하는데 **두 가지 방법**이 있다.
+
+1. **Model-centric or Technical Metrics**: Loss, Accuaracy 등으로 모델만 가지고 평가하는 방법이다.
+
+  - 이 방법은 성능을 빠르게 확인할 수 있고, Optimize하기 쉽다는 장점이 있다.
+    
+2. **Business-centric or Outcome Metrics**: 투자 대비 성과와 같이 비즈니스적으로 판단하는 방법
+
+두 가지 방법 모두 장단점이 있으며, **두 가지 방법 모두를 사용**하는 것이 일반적으로 좋다.
