@@ -122,7 +122,7 @@ chunk에서 **일부분을 겹치게 하는 이유**는 아래와 같다.
 먼저 Vector DB에 대해 탐색하기 전에 **Embedding할 모델을 설정**해야 한다.
 
 ```python
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 
 embeddings = OpenAIEmbeddings()
 ```
@@ -173,3 +173,66 @@ reduced_vectors = tsne.fit_transform(vectors)
 
 ## Day4
 
+**Key Abstractions in LandChain**
+
+1. **LLM**
+
+2. **Retriever**: 검색 엔진
+
+3. **Memory**: 사용자와 대화한 기록
+
+위 3가지를 이용하여 **Conversation chain**을 만들 수 있다.
+
+- 대화 맥락을 함께 넣어 LLM을 호출하는 파이프라인
+
+**Conversation_chain**을 생성하는 기본 구조는 아래와 같다.
+
+```python
+# create a new Chat with OpenAI
+llm = ChatOpenAI(temperature=0.7, model_name=MODEL)
+
+# set up the conversation memory for the chat
+# 대화 (질문/답변)을 메모리에 저장
+# memory_key=: 체인이 프롬프트에 끼워 넣을 대화 기록의 키 이름
+# return_messages=True: Text 객체 형식으로 저장
+# 이후 memory는 자동으로 사용자와의 대화를 추적한다.
+memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+
+# the retriever is an abstraction over the VectorStore that will be used during RAG
+retriever = vectorstore.as_retriever()
+
+# putting it together: set up the conversation chain with the GPT 4o-mini LLM, the vector store and memory
+# RAG Chain 생성
+conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory)
+```
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
+
+llm = ChatOpenAI(temperature=0.7, model_name=MODEL)
+
+memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+
+retriever = vectorstore.as_retriever()
+
+conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory)
+
+query = "Can you describe Insurellm in a few sentences"
+result = conversation_chain.invoke({"question":query})
+# 답변만 출력
+print(result["answer"])
+
+# set up a new conversation memory for the chat
+# 이전과 다른 새로운 대화를 시작하려면 Memory를 초기화해야됨
+memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+
+# 초기화한 Memory에 맞추어 Conversation_chain 실행
+# putting it together: set up the conversation chain with the GPT 4o-mini LLM, the vector store and memory
+conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory)
+```
+
+위는 **RAG**를 사용한 코드이며, Day 1 ~ 3와는 다르게 **직접적으로 특정 단어가 언급되지 않아도 질문에 대한 답변**을 하는 것을 확인할 수 있다.
+
+## Day 5
