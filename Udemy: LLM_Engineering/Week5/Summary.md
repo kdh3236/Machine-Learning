@@ -100,3 +100,76 @@ chunk에서 **일부분을 겹치게 하는 이유**는 아래와 같다.
 2. **같은 내용이 여러 Chunk의 중복 포함되면서 의미 기반 검색에서 의미적으로 가까운 결과가 나올 확률이 높아진다.**
 
 추가로, 한 chunk에 여러개의 문서의 내용이 섞이진 않는다.
+
+
+## Day3
+
+**Vector Embedding Models**을 구현하는 방법은 여러 가지가 있다.
+
+1. 특정 어휘가 나온 횟수에 따라 정수 ID를 매핑하는 것
+
+        - 가장 간단하지만, 한 단어가 두 개 이상의 의미가 있는 등의 경우에 정확히 동작하지 않는다.
+
+2. **word2vec**: Neural Network를 이용해 Vector로 매핑
+
+3. **BERT**
+
+4. **OpenAI Embedding**
+
+
+**Chroma**: Open-source Vector Database
+
+먼저 Vector DB에 대해 탐색하기 전에 **Embedding할 모델을 설정**해야 한다.
+
+```python
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+
+embeddings = OpenAIEmbeddings()
+```
+
+이후, Vector DB를 생성한다. 같은 이름의 DB가 이미 존재한다면 **삭제 후 생성**할 수 있도록 한다.
+
+```python
+from langchain_chroma import Chroma
+
+# 같은 이름의 DB가 존재한다면 삭제
+# persist_directory: 쓸 폴더 경
+if os.path.exists(db_name):
+    Chroma(persist_directory=db_name, embedding_function=embeddings).delete_collection()
+
+# documents, embedding model(function)을 지정한다.
+vectorstore = Chroma.from_documents(documents=chunks, embedding=embeddings, persist_directory=db_name)
+
+# DB 속 Document의 개수를 셀 수도 있다.
+vectorstore._collection.count()
+
+# DB 내의 Vector 집합을 얻는다.
+collection = vectorstore._collection
+# 하나의 Vector만 Sample로 얻는다.
+# limit=1: Collection에서 가져올 최대 개수
+sample_embedding = collection.get(limit=1, include=["embeddings"])["embeddings"][0]
+# Sample의 길이가 한 vector의 Dimension이다.
+dimensions = len(sample_embedding)
+
+# 아래와 같은 방법으로 원하는 결과를 얻을 수 있다.
+# include=[]: 원하는 정보를 입력
+result = collection.get(include=['embeddings', 'documents', 'metadatas'])
+vectors = np.array(result['embeddings'])
+documents = result['documents']
+doc_types = [metadata['doc_type'] for metadata in result['metadatas']]
+```
+
+Exercise에서 한 vector의 dimension은 1,536이다.
+
+사람은 3차원까지만 시각적으로 확인할 수 있기 때문에, **t-SNE**를 이용하여 **2차원 또는 3차원까지 차원을 축소해야 결과를 시각적으로 확인**할 수 있다.
+
+```python
+from sklearn.manifold import TSNE
+
+# n_components: 차원수, random_state: seed 설정
+tsne = TSNE(n_components=3, random_state=42)
+reduced_vectors = tsne.fit_transform(vectors)
+```
+
+## Day4
+
