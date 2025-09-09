@@ -265,7 +265,6 @@ conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=re
 retriever = vectorstore.as_retriever(search_kwargs={"k": n})
 ```
 
-____
 
 ## 정리
 
