@@ -1,6 +1,6 @@
 ## Day1
 
-**RAG(Retrieval Augmented Generation)**: LLM이 사용자의 질문에 대한 답변의 질을 높이기 위해 Knowledge base에 retrieve 하는 것
+**RAG(Retrieval Augmented Generation)**: LLM이 사용자의 질문에 대한 답변의 질을 높이기 위해 **Knowledge base에 retrieve** 하는 것
 
 LLM은 **두 가지 종류**로 나뉜다.
 
@@ -37,4 +37,66 @@ LLM은 **두 가지 종류**로 나뉜다.
 
     - **Vector Datastore**에 사전에 저장되어있던 정보도 모두 Vector 형태로 저장되어 있으며, 관련된 정보는 Question vector와 비슷한 위치에 있어야 한다.
 
-3. (2)에서 얻은 추가적인 정보까지 추가하여 **Auto-regressive LLMs**에 **Prompt**로 전달하고 답을 얻는다. 
+3. (2)에서 얻은 추가적인 정보까지 추가하여 **Auto-regressive LLMs**에 **Prompt**로 전달하고 답을 얻는다.
+
+Exercise에서 `glob()`을 사용하는 것을 확인할 수 있었다.
+
+- pattern 아래의 **모든 파일과 폴더 경로를 List로 반환**한다.
+
+- `recursive=True`라면 하위 폴더까지 탐색한다.
+
+```python
+glob.glob(pattern, recursive=False)
+```
+
+
+## Day2
+
+**LangChain**: LLM Application을 빠르게 Build할 수 있게 해주는 Framework
+
+Day2에서는 벡터 검색 대신, LangChain을 이용하여 Text 기반 검색하는 것을 해본다.
+
+```python
+# 파일을 불러오는 것을 도와줌
+from langchain.document_loaders import DirectoryLoader, TextLoader
+# Document를 받아 Chunk로 나눔
+from langchain.text_splitter import CharacterTextSplitter
+
+text_loader_kwargs = {'encoding': 'utf-8'}
+
+documents=[]
+doc_type = os.path.basename(folder)
+
+# glob="**/*.md": 하위 폴더의 .md파일까지 전부 탐색
+# loader_cls=TextLoader: 단순히 Text를 읽어 Document로  
+loader = DirectoryLoader(folder_name, glob="**/*.md", loader_cls=TextLoader, loader_kwargs=text_loader_kwargs)
+
+# load() 시점에 실제 Document object의 List가 반환된다.
+folder_docs = loader.load()
+
+for doc in folder_docs:
+    # metadata 설정, doc_type: 폴더 이름
+    doc.metadata["doc_type"] = doc_type
+    documents.append(doc)
+
+# 한 Chunk의 텍스트 개수가 최대 1000, 각 chunk마다 200 글자씩은 겹침
+# 각 문서는 독립적으로 처리되고, 모든 chunk가 List 형태로 반환됨
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+chunks = text_splitter.split_documents(documents)
+
+# metadata가 dictionary 형태로 확인됨
+# doc_type은 파일명
+chunk.metadata
+chunk.metadata["doc_type"]
+
+# chunk의 내용 확인
+chunk.page_content
+```
+
+chunk에서 **일부분을 겹치게 하는 이유**는 아래와 같다.
+
+1. **정보 손실 방지**
+
+2. **같은 내용이 여러 Chunk의 중복 포함되면서 의미 기반 검색에서 의미적으로 가까운 결과가 나올 확률이 높아진다.**
+
+추가로, 한 chunk에 여러개의 문서의 내용이 섞이진 않는다.
