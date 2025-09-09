@@ -264,3 +264,17 @@ conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=re
 # 아래와 같이 사용하면 검색 결과 연관성이 가장 높은 n개의 Chunk를 LLM에 념겨주게 된다.
 retriever = vectorstore.as_retriever(search_kwargs={"k": n})
 ```
+
+____
+
+## 정리
+
+1. 폴더 내의 문서들을 읽어 Chunk로 나눔
+   
+2. 각 Chunk를 OpenAIEmbeddings를 이용하여 벡터화
+
+3. 벡터화된 것을 Chroma를 통해 DB에 넣음
+
+4. 모델, 메모리, Retirever를 설정
+
+5. ConversationalRetrievalChain()을 이용하여 Conversation_chain을 만들고 .invoke()로 질문에 대한 답을 형성 
