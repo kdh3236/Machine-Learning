@@ -206,6 +206,8 @@ retriever = vectorstore.as_retriever()
 conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory)
 ```
 
+전체 과정을 확인하면 아래와 같다.
+
 ```python
 from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
@@ -236,3 +238,29 @@ conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=re
 위는 **RAG**를 사용한 코드이며, Day 1 ~ 3와는 다르게 **직접적으로 특정 단어가 언급되지 않아도 질문에 대한 답변**을 하는 것을 확인할 수 있다.
 
 ## Day 5
+
+`stdOutCallbackHandler`를 통해 **Langchain의 Background에서 어떠한 작업이 이루어지는지 확인**할 수 있다.
+
+```python
+from langchain_core.callbacks import StdOutCallbackHandler
+
+# conversation_chain을 생성할 때, callbacks=[StdOutCallbackHandler()]만 추가해주면 된다.
+conversation_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory, callbacks=[StdOutCallbackHandler()])
+```
+
+기존처럼 **하나의 chunk**만 LLM에 넘겨주게 되면, **정보가 부족**하여 제대로 된 답변을 하지 못 하는 경우가 많다.
+
+이 경우, 아래와 같은 방법을 이용하여 해결할 수 있다.
+
+1. **Overlap을 늘린다.**
+
+2. **Chunks의 최대 크기를 늘리거나 줄인다.**
+
+3. **Document 전체를 LLM에 넘겨준다.**
+
+강의에서 사용한 방법은 `as_retreiver(search_kwargs={"k": })`를 이용한다.
+
+```python
+# 아래와 같이 사용하면 검색 결과 연관성이 가장 높은 n개의 Chunk를 LLM에 념겨주게 된다.
+retriever = vectorstore.as_retriever(search_kwargs={"k": n})
+```
