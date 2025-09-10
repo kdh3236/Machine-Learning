@@ -158,4 +158,12 @@ class Item:
 
 5. **Productionize**: 모델과 Platform 사이에 API를 결정, 지속적으로 모델 체크
 
+Exercise에서는 **Data를 Load하기 위한 Class를 따로 정의했다.**
 
+여기선, `load_dataset()`을 이용해 load한 dataset을 다루는 함수에 대해서만 알아보자.
+
+```python
+
+```
+
+이후, 데이터를 **Crafted**하여 **Training에 안정성을 부여할 필요**가 있다.
