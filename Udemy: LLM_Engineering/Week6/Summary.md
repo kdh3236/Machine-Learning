@@ -1,4 +1,4 @@
-**Training Frontier model**
+**Fine-tuning Frontier model**
 
 ## Day1
 
@@ -139,4 +139,23 @@ class Item:
         """
         return f"<{self.title} = ${self.price}>"
 ```
+
+## Day2
+
+**LLM을 Training하고 Applying하기 위해 5가지 단계가 필요하다.**
+
+1. **Understand**: Project에 대한 이해를 바탕으로 적합한 품질의 Data를 선택
+
+2. **Prepare**: LLM Model을 비교하고 Data Processing
+
+3. **Select**: LLM 선택하고 Training
+
+4. **Customize**: Prompting, RAG, Fine-tuning을 통해 성능 개선
+
+      - **Prompting**: **비용이 적고 구현하기 쉬우며** 성능 향상이 쉽게 됨. / **Token 개수에 의해 제한**이 되며 Token이 많아질수록 느리고 비싸짐
+      - **RAG**: **확장 가능성, 효율적, 적은 데이터로 정확성 개선** 가능 / 구현이 어렵고 **최신 데이터를 유지**해야 한다.
+      - **Fine-tuning**: 특정 프로젝트에 **적합한 심화 지식**을 모델이 학습하도록 할 수 있음 / 구현이 어렵고 데이터가 많이 필요하며, **Training하는데 시간이 많이 든다.**
+
+5. **Productionize**: 모델과 Platform 사이에 API를 결정, 지속적으로 모델 체크
+
 
