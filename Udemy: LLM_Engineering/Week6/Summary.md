@@ -310,4 +310,31 @@ class Tester:
  각 **Baseline**의 예측에 대해 **평균을 내고 그래프로 시각화**하여 결과를 확인했다. 
 
  
- 
+ ## Day4
+
+ **Frontier LLM Model**에 Test data를 주고 결과를 살펴보자.
+
+**Day3**에서 사용한 Tester class를 동일하게 사용하고, 기존에 **Frontier model을 다루었던 것과 동일하게 함수를 구현**한다.
+
+ ```python
+def get_price(s):
+    s = s.replace('$','').replace(',','')
+    # 가격에 해당하는 숫자만 Return 되도록 한다.
+    match = re.search(r"[-+]?\d*\.\d+|\d+", s)
+    return float(match.group()) if match else 0
+
+def gpt_4o_mini(item):
+    response = openai.chat.completions.create(
+        model="gpt-4o-mini", 
+        messages=messages_for(item),
+        # 같은 질문에는 같은 대답을 주기를 강제
+        seed=42,
+        max_tokens=5
+    )
+    reply = response.choices[0].message.content
+    return get_price(reply)
+
+Tester.test(gpt_4o_mini, test)
+```
+
+## Day5
