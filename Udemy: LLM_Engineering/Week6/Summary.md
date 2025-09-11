@@ -269,6 +269,8 @@ with open('test_lite.pkl', 'wb') as file:
 
 - 실제로 이렇게 **Wrapping하는 Test Class를 구현하는 것은 중요하다.**
 
+- 하나의 class로 여러 개의 Baseline을 Test해볼 수 있도록 도와준다.
+
 ```python
 class Tester:
    def __init__(self, predictor, title=None, data=test, size=250):
