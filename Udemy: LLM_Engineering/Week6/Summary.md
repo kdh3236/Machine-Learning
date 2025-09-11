@@ -1,5 +1,3 @@
-**Fine-tuning Frontier model**
-
 ## Day1
 
 Training을 위해 **어떤 Dataset**을 사용할지도 중요하다.
