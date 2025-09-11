@@ -338,3 +338,128 @@ Tester.test(gpt_4o_mini, test)
 ```
 
 ## Day5
+
+**Frontier Model을 Fine-tuning**
+
+1. Training Dataset을 jsonl format으로 생성하고 OpenAI에 업로드
+
+2. Training / Validation loss가 감소하게 Training
+
+3. 결과를 확인하고 (1) ~ (2) 과정을 반복
+
+**OpenAI는 이미 많은 데이터로 학습을 시켰기 때문에, 공식적으로 Fine-tuning을 위해선 50 ~ 100개의 예시만 Training에 활용하는 것을 추천한다.**
+
+가장 먼저 해야할 작업은 **jsonl** 형식의 파일로 만드는 것이다.
+
+- **jsonl**: OpenAI가 기대하는 형식으로 각 행이 하나의 JSON 객체을 가지는 파일
+
+```python
+def make_jsonl(items):
+    result = ""
+    for item in items:
+        messages = messages_for(item)
+        # json -> str
+        messages_str = json.dumps(messages)
+        # json 형식으로 맞추고 각 행에 넣음
+        result += '{"messages": ' + messages_str +'}\n'
+    return result.strip()
+
+# jsonl 파일 생성
+def write_jsonl(items, filename):
+    with open(filename, "w") as f:
+        jsonl = make_jsonl(items)
+        f.write(jsonl)
+
+write_jsonl(fine_tune_train, "fine_tune_train.jsonl")
+
+with open("fine_tune_train.jsonl", "rb") as f:
+    # fine-tuning 목적으로 파일 생성
+    train_file = openai.files.create(file=f, purpose="fine-tune")
+```
+
+이제 **OpenAI Fine-Tuning에 대해 알아보자.**
+
+```python
+# Fine-tuning 작업 생성
+# 이 함수를 통해 실질적으로 Training을 시작한다.
+openai.fine_tuning.jobs.create(
+      training_file=train_file.id,
+      validation_file=validation_file.id,
+      model="gpt-4o-mini-2024-07-18",
+      seed=42,
+      hyperparameters={"n_epochs": 1},
+      # 외부 연동 설정: Weights & Biases(W&B)로 파인튜닝 로그/지표를 보
+      integrations = [wandb_integration],
+      # 모델이 이름에 붙이는 접미사
+      suffix="pricer"
+)
+
+# limit=의 개수만큼의 Page
+# Job 객체를 반환하기 위해서는 .data[0]까지 사용해야 한다.
+openai.fine_tuning.jobs.list(limit=1).data[0]
+
+# data: job 객체를 반환
+job_id = openai.fine_tuning.jobs.list(limit=1).data[0].id
+# job_id에 해당되는 job에 대한 세부 정보가 반환됨. (Token 개수, 작업 상태 등) 
+openai.fine_tuning.jobs.retrieve(job_id)
+
+# 이벤트 Log: loss, checkpoint, complete message 등이 출력됨
+# 해당 Job에 해당하는 Event log를 List 형태로 반환한다.'
+# .data를 붙이는 이유는 Job 객체로로 반환받기 위함이다.
+openai.fine_tuning.jobs.list_events(fine_tuning_job_id=job_id, limit=10).data
+```
+
+이후 Training을 시킬 수 있다.
+
+Training에서 **Loss, system log, Weight 등을 시각적으로 확인할 수 있도록** **Weights & Biases**를 이용할 수 있다.
+
+```python
+from wandb.integration.openai.fine_tuning import WandbLogger
+
+# Log in to Weights & Biases.
+wandb.login()
+# Sync the fine-tuning job with Weights & Biases.
+# job_id에 해당하는 작업을 시각화하도록 연결한다.
+WandbLogger.sync(fine_tune_job_id=job_id, project=project_name)
+```
+
+Training이 완료된 이후에는 fine-tuning이 완료된 모델을 사용할 수 있다.
+
+```python
+# job_id에 해당하는 Model 이름을 불러온다.
+fine_tuned_model_name = openai.fine_tuning.jobs.retrieve(job_id).fine_tuned_model
+
+response = openai.chat.completions.create(
+        # 여기에 Fine-tuned model을 사용해서 fine-tuned model을 이용할 수 있다.
+        model=fine_tuned_model_name,
+        messages=messages_for(item),
+        seed=42,
+        max_tokens=7
+)
+```
+
+이렇게 내가 **원하는 데이터셋을 이용하여 Fine-tuning 하더라도 성능이 그렇게 좋지 않은 경우**가 많다.
+
+**성능이 좋지 않은 여러 가지 이유**가 있다.
+
+1. Frontier Model은 애초에 굉장히 많은 데이터로 Training 되었기 때문에, 적은 Data로 Fine-tuning을 하더라도 해당 Domain에 대한 전문성이 나타나지 않을 수 있다.
+
+2. Model이 이전 Training한 Memory를 잊어버리며 Fine-tuning한 결과를 까먹을 수도 있다.
+
+3. 가격 예측과 같이 문제 상황이 명확한 경우에는 시간과 비용 측면에서 Fine-tuning이 오히려 좋지 않을 수 있다.
+
+**Fine-Tuning이 일반적으로 좋은 상황은 아래와 같다.**
+
+1. **프롬프트만으로는 안 되는 ‘스타일/톤’ 고정**
+
+2. **특정 출력 유형의 ‘재현성(일관성)’ 향상**
+
+3. **복잡한 지시 불이행 보정**
+
+4. **Edge case(희귀 패턴) 처리**
+
+5. **Prompt로 규정하기 어려운 ‘새로운 기술/과업’ 습득**
+
+즉, **특수한 작업이거나 Model의 답변의 형식을 제한할 필요**가 있을 때 Fine-tuning을 사용하는 것이 좋다.
+
+일반적으로 **Data의 개수가 부족하면 Traditional ML 방법**이 오히려 더 적합하다.
