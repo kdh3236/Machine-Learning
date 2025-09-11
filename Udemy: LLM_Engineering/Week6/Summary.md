@@ -250,3 +250,62 @@ with open('train_lite.pkl', 'wb') as file:
 with open('test_lite.pkl', 'wb') as file:
     pickle.dump(test, file)
 ```
+
+
+## Day3
+
+**Baseline**: 비교 기준이 되는 기본 모델·방법·프롬프트 설정
+
+- Baseline을 기준으로 두고, 구현하면 구현이 빨라진다.
+- Benchmark를 기준으로 모델을 비교, 평가한다.
+- 같은 환경에서 모델의 성능을 비교하고 측정 수 있다.
+- **LLM은 반드시 Baseline의 성능보다 좋게 나와야 사용할 가치가 있어진다.**
+
+**Traditional MLs은 LLM의 Baseline으로 좋다.**
+
+이번 강의에서는 **Baseline으로 사용하기 위한 Traditional ML을 구현하는 방법**에 대해 공부한다.
+
+여러 **Baseline을 Test하기 위해** 어떤 함수를 Parameter로 받아 실행할 수 있도록 해주는 `Tester Class`를 구현한다.
+
+- 실제로 이렇게 **Wrapping하는 Test Class를 구현하는 것은 중요하다.**
+
+```python
+class Tester:
+   def __init__(self, predictor, title=None, data=test, size=250):
+        self.predictor = predictor
+        self.data = data
+        self.title = title or predictor.__name__.replace("_", " ").title()
+        self.size = size
+       
+
+   def run():
+      self.predictor()
+
+   @classmethod
+   def test(cls, fcn):
+      # cls(fnc)하면 __init__(fcn)을 호출하여 새로운 Class 객체 생성
+      cls(fnc).run()
+```
+
+이제 **각 Baseline 함수를 구현하여, Tester class를 이용하여 Test**하면 된다. 
+
+사용한 방법들은 아래와 같다.
+
+- **Random**하게 예측하는 방법
+
+- 항상 같은 **상수값으로 예측**하는 방법
+
+- **Feature Engineering**을 이용하여 **가격와 가장 관련이 높은 Feature를 사용하여 Lienar Regression으로 예측**하는 방법
+
+- **Bag-of-Words**로 Document를 Vector로 만들어 **Linear Regression으로 가격을 예측**하는 방법
+
+- **Word2Vec**로 Document를 Vector로 만들어 **Linear Regression으로 가격을 예측**하는 방법
+
+- **Support Vector Machines**을 이용하여 예측하는 방법
+
+- **Random Forest**를 이용하여 예측하는 방법
+
+ 각 **Baseline**의 예측에 대해 **평균을 내고 그래프로 시각화**하여 결과를 확인했다. 
+
+ 
+ 
