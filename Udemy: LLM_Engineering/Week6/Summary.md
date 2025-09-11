@@ -43,6 +43,8 @@ LLM을 Training할 때, 일반적으로 **Dataset을 깔끔하게 정리해주�
 
 - Data의 특징에 따라 특정 텍스트를 Cutting하는 등의 작업
 
+- 추가로, 아래 코드에서 **Training prompt에는 가격 정보가 보이도록 구현**하고, **Testing prompt에는 가격 정보가 보이지않고 모델이 예측할 수 있도록 구현**한 것을 확인할 수 있다.
+
 
 ```python
 # Amazon의 판매 데이터를 예시로 한 Item Class의 예시를 확인해보자.
@@ -163,7 +165,88 @@ Exercise에서는 **Data를 Load하기 위한 Class를 따로 정의했다.**
 여기선, `load_dataset()`을 이용해 load한 dataset을 다루는 함수에 대해서만 알아보자.
 
 ```python
+# 주어진 범위 내의 Data만 선택
+dataset.select(range(i, min(i + CHUNK_SIZE, size)))
 
+# ProcessPoolExecutor: 데이터셋 다운로드를 병렬로 처리
+chunk_count = (len(self.dataset) // CHUNK_SIZE) + 1
+with ProcessPoolExecutor(max_workers=workers) as pool:
+    for batch in tqdm(pool.map(self.from_chunk, self.chunk_generator()), total=chunk_count):
+        results.extend(batch)
 ```
 
-이후, 데이터를 **Crafted**하여 **Training에 안정성을 부여할 필요**가 있다.
+이후, 데이터를 **Curated**하여 **Training에 안정성을 부여할 필요**가 있다.
+
+- Exercise에서는 여러 Category 중 `Automative` Category의 데이터 개수가 비교적 많았다.
+
+- **Category별 데이터 분포를 균일하게 유지하는 것이 Training에서의 성능에 도움**이 되기 때문에, Automative의 데이터 비중을 비교적 줄인 새로운 데이터셋을 만드는 작업이 필요하다.
+
+```python
+# defaultdict(list): dictionary 기본 value를 list 형태로 고정 
+slots = defaultdict(list)  
+for item in items:
+    slots[round(item.price)].append(item)
+
+np.random.seed(42)
+random.seed(42)
+sample = []
+for i in range(1, 1000):
+    slot = slots[i]
+    # 가격이 240$ 이상이면 그냥 추가
+    if i>=240:
+        sample.extend(slot)
+    # 가격이 1~239$인데 해당 물품 개수가 1200개 이하이면 그냥 추가
+    elif len(slot) <= 1200:
+        sample.extend(slot)
+    # 가격이 1~239$인데 해당 물품 개수가 1200개 이상이면 제한을 둠
+    else:
+        # 랜덤으로 1200개를 뽑기 위한 가중치 부여
+        # Automative data 개수가 많기 때문에 가중치는 1 부여
+        weights = np.array([1 if item.category=='Automotive' else 5 for item in slot])
+        weights = weights / np.sum(weights)
+        # 가중치에 맞게 slot 중 1200개만 뽑음
+        selected_indices = np.random.choice(len(slot), size=1200, replace=False, p=weights)
+        selected = [slot[i] for i in selected_indices]
+        sample.extend(selected)
+```
+이후, Training과 Testing을 위해선 Dataset을 나누어야 한다.
+
+- 일반적으로, **Testing Data가 전체의 5~10%를** 차지하도록 한다.
+
+```python
+random.seed(42)
+random.shuffle(sample)
+train = sample[:25_000]
+test = sample[25_000:27_000]
+```
+
+마지막으로 작업한 Dataset을 **Huggingface Hub에 올릴 수 있다.**
+
+```python
+train_prompts = [item.prompt for item in train]
+train_prices = [item.price for item in train]
+test_prompts = [item.test_prompt() for item in test]
+test_prices = [item.price for item in test]
+
+# Dataset.from_dict: 사용자가 지정한 Key에 맞추어 List value를 Table 형태로 생성함
+# 이때, 모든 Key의 List의 길이가 동일해야 한다. 
+train_dataset = Dataset.from_dict({"text": train_prompts, "price": train_prices})
+test_dataset = Dataset.from_dict({"text": test_prompts, "price": test_prices})
+
+# DatasetDict: train/test를 key로 Dataset을 생성
+dataset = DatasetDict({
+    "train": train_dataset,
+    "test": test_dataset
+})
+
+DATASET_NAME = "username/dataset_name"
+# push_to_hub: hub에 push
+dataset.push_to_hub(DATASET_NAME, private=True)
+
+# Dataset을 Local에 .pkl 파일 형식으로 저장할 수도 있다.
+with open('train_lite.pkl', 'wb') as file:
+    pickle.dump(train, file)
+
+with open('test_lite.pkl', 'wb') as file:
+    pickle.dump(test, file)
+```
