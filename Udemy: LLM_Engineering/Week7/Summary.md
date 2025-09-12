@@ -84,3 +84,116 @@ Fine-tuning을 할 Model을 선택할 때 고려할 점이 있다.
     - **Instruct Varient**: 특정 포맷의 답변을 잘 하며, 지시를 비교적 잘 따른다.
   
 ## Day3 
+
+**QLoRA**를 위해선 **두 개의 Hyperparameter**가 추가로 요구된다.
+
+- **Dropout**
+- **Quantization**
+
+**Five Important Hyper-parameters for Training**
+
+1. **Epochs**
+
+2. **Batch Size**
+
+3. **Learning Rate**
+
+4. **Gradient Accumulation**: Training 속도를 높이는 방법
+
+      - 미니 배치를 통해 구해진 gradient를 n-step동안 Global Gradients에 누적시킨 후, 한번에 업데이트
+      - GPU 메모리 부족으로 인하여 큰 Batch size를 사용하지 못 할 때, 원하는 크기만큼의 Batch size를 사용할 수 있도록 해준다.
+
+5. **Optimizers**
+
+우리는 가격을 예측하는 LLM Model을 만들고 있다.
+
+- **가격 (숫자)에 대해서만 예측**을 해야하기 떄문에 아래와 같은 사전 작업이 필요하다.
+
+- 전체 Prompt를 넣으면 **상품 정보에 대한 답변이 나올 수 있다.**
+
+- 우리는 Prompt에서 $ 기호 뒤에 나오는 정보 (가격)만 예측하기를 원한다. 
+
+```python
+from trl import DataCollatorForCompletionOnlyLM
+# Response_template="~": "~" 뒤에 올 Token을예측하도록 한다.
+response_template = "Price is $"
+# "~" 뒤 Token만을 예측하도록 하기 위해, "Price is $" 이전 Prompt는 Masking 처리 해서 Loss 및 Backpropagation에서 제외한다.
+# response_template 직후 구간만 정답 레이블로 둔다.
+collator = DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)
+```
+
+이후, **LoRA에 대한 hyperparameter 값을 먼저 정의한다.**
+
+```python
+from peft import LoraConfig
+
+lora_parameters = LoraConfig(
+    lora_alpha=LORA_ALPHA,
+    lora_dropout=LORA_DROPOUT,
+    r=LORA_R,
+    bias="none",
+    task_type="CAUSAL_LM",
+    target_modules=TARGET_MODULES,
+)
+```
+
+이후, **Training Hyperparameter 값도 정의한다.**
+
+```python
+from trl import SFTConfig
+
+train_parameters = SFTConfig(
+    output_dir=PROJECT_RUN_NAME,
+    num_train_epochs=EPOCHS,
+    per_device_train_batch_size=BATCH_SIZE,
+    per_device_eval_batch_size=1,
+    eval_strategy="no",
+    gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
+    optim=OPTIMIZER,
+    save_steps=SAVE_STEPS,
+    save_total_limit=10,
+    logging_steps=STEPS,
+    learning_rate=LEARNING_RATE,
+    weight_decay=0.001,
+    fp16=False,
+    bf16=True,
+    max_grad_norm=0.3,
+    max_steps=-1,
+    warmup_ratio=WARMUP_RATIO,
+    group_by_length=True,
+    lr_scheduler_type=LR_SCHEDULER_TYPE,
+    report_to="wandb" if LOG_TO_WANDB else None,
+    run_name=RUN_NAME,
+    max_seq_length=MAX_SEQUENCE_LENGTH,
+    dataset_text_field="text",
+    save_strategy="steps",
+    hub_strategy="every_save",
+    # Huggingface hub에 Push 하기 위함
+    push_to_hub=True,
+    hub_model_id=HUB_MODEL_NAME,
+    hub_private_repo=True
+)
+```
+
+마지막으로 **Trainer**를 정의하고 Training을 진행할 수 있다. 
+
+```python
+from trl import SFTTrainer
+from peft import LoraConfig
+
+fine_tuning = SFTTrainer(
+    model=base_model,
+    train_dataset=train,
+    peft_config=lora_parameters,
+    args=train_parameters,
+    data_collator=collator
+)
+
+# Training 시작
+fine_tuning.train()
+
+# Push our fine-tuned model to Hugging Face
+fine_tuning.model.push_to_hub(PROJECT_RUN_NAME, private=True)
+```
+
+## Day4
