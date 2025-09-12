@@ -150,6 +150,7 @@ train_parameters = SFTConfig(
     eval_strategy="no",
     gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
     optim=OPTIMIZER,
+    # Checkpoint 간격
     save_steps=SAVE_STEPS,
     save_total_limit=10,
     logging_steps=STEPS,
@@ -197,3 +198,41 @@ fine_tuning.model.push_to_hub(PROJECT_RUN_NAME, private=True)
 ```
 
 ## Day4
+
+**Training Loss**를 확인해보면 **각 Epoch 내에서는 Loss가 진동하다가, 각 Epoch의 마지막 부분에서는 Loss가 급감**하는 것을 확인할 수 있다.
+
+- 이는 Epoch가 반복될수록 **Model은 같은 데이터를 반복해서 보게 되는 것이기 떄문이다.**
+- 일종의 **Overfitting**이다.
+
+Training 시 주의할 점은 **Gradient가 0이 되지 않아야 한다는 점이다.**
+
+- Gradient가 0이 되면 **학습이 전혀 진행되지 않는다.**
+
+Training 한 Model을 Huggingface에 올릴 때, **일정한 Training step마다 commit**하는 것이 좋다.
+
+- Training_config의 `save_steps=`를 통해 가능하다.
+
+## Day5
+
+Training 과정에서 예측한 Token을 이용하여 Loss를 구하는 방법에 대해 알아보자.
+
+- **예측한 Token이 맞을 확률**로 다루고 싶다.
+
+- **Cross Entropy Loss**를 사용한다.
+
+**Day4**에서 Huggingface에 올린 **Fine-tuned Model**을 불러오는 방법은 아래와 같다.
+
+```python
+from peft import PeftModel
+
+FINETUNED_MODEL = f"{HF_USER}/{PROJECT_RUN_NAME}"
+
+if REVISION:
+  fine_tuned_model = PeftModel.from_pretrained(base_model, FINETUNED_MODEL, revision=REVISION)
+else:
+  fine_tuned_model = PeftModel.from_pretrained(base_model, FINETUNED_MODEL)
+
+# Inference
+attention_mask = torch.ones(inputs.shape, device="cuda")
+outputs = fine_tuned_model.generate(inputs, attention_mask=attention_mask, max_new_tokens=3, num_return_sequences=1)
+```
