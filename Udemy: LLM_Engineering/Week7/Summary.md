@@ -65,9 +65,22 @@ quant_config = BitsAndBytesConfig(
 
 # LoRA
 # PerfModel(): Base model 위에 LoRA Adaptor를 올린다.
-# FINETUNED_MODEL: Weight를 Load할 Hub ID 또는 Local 경
+# FINETUNED_MODEL: Weight를 Load할 Hub ID 또는 Local 경로
 fine_tuned_model = PeftModel.from_pretrained(BASE_MODEL, FINETUNED_MODEL)
 
 # 원래는 처음부터 PeftModel()으로 불러오지 않고 model.save_pretrained(FONTUNED_MODEL)을
 # 통해 Local이나 Hub에 저장해야 한다.
 ```
+
+## Day2
+
+Fine-tuning을 할 Model을 선택할 때 고려할 점이 있다.
+
+1. **Parameter의 개수**
+
+2. **Base vs Instruct Varient**
+
+    - **Base**: 기본 모델, Prompt와 대화를 바탕으로 다음 Token을 예측
+    - **Instruct Varient**: 특정 포맷의 답변을 잘 하며, 지시를 비교적 잘 따른다.
+  
+## Day3 
