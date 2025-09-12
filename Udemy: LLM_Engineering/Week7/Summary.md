@@ -43,3 +43,31 @@
 3. **Target Modules**: Which layers of the neural network are adapted
 
       - 일반적으로 Attention head layers를 Target하는 경우가 많다.
+
+```python
+from transformers import BitsAndBytesConfig
+from peft import LoraConfig, PeftModel
+
+base_model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, device_map="auto")
+
+# Quantization 부분은 아래와 같이 진행할 수 있다.
+
+# 8 bits로
+quant_config = BitsAndBytesConfig(load_in_8bit=True)
+
+# 4 bits
+quant_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_quant_type="nf4"
+)
+
+# LoRA
+# PerfModel(): Base model 위에 LoRA Adaptor를 올린다.
+# FINETUNED_MODEL: Weight를 Load할 Hub ID 또는 Local 경
+fine_tuned_model = PeftModel.from_pretrained(BASE_MODEL, FINETUNED_MODEL)
+
+# 원래는 처음부터 PeftModel()으로 불러오지 않고 model.save_pretrained(FONTUNED_MODEL)을
+# 통해 Local이나 Hub에 저장해야 한다.
+```
