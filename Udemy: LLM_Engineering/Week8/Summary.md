@@ -60,12 +60,63 @@ result
 - 이전 작업과 동일하며, 파이썬 파일에 함수가 정의된 것이다.
 
 ```python
+# pricer_service.py 모듈을 Modal에 배포하는 명령어
+!modal deploy -m pricer_service
 
+# 배포되어 있는 앱, 함수를 다룰 수 있는 Handle 설정
+# 첫 Argument "pricer-service"는 앱 이름(코드에서 modal.App("pricer-service")로 만든 그 이름).
+# 두 번째 Argument "price"는 @app.function으로 데코레이트된 함수 이름.
+pricer = modal.Function.from_name("pricer-service", "price")
+
+# Prompt를 기반으로 Inference
+pricer.remote("Quadcast HyperX condenser mic, connects via usb-c to your computer for crystal clear audio")
 ```
 
 이후, **Class를 이용**하여 앱을 배포하는 과정을 알아보자.
 
 - 파이썬 파일에 Class가 정의된다.
 
+먼저 Class를 정의해야 한다.
+
+```python
+@app.cls(
+    image=image.env({"HF_HUB_CACHE": CACHE_DIR}),
+    secrets=secrets, 
+    gpu=GPU, 
+    timeout=1800,
+    min_containers=MIN_CONTAINERS,
+    volumes={CACHE_DIR: hf_cache_volume}
+)
+class Pricer:
+
+    @modal.enter() # Class instance가 한 번 올라올 때 실행되도록 한다.
+    def setup(self):
+        # 보통 모델 로드, 토크나이저 준비, DB 연결을 미리 Load한다.
+        pass
+
+    @modal.method() # 원격에서 호출 가능한 클래스 메서드
+    def price(self, description: str) -> float:
+        pass
+```
+
+이후 아래와 같이 사용할 수 있다.
+
+```python
+# pricer_service2.py 모듈을 Modal에 배포하는 명령어
+!modal deploy -m pricer_service2
+
+# 배포되어 있는 앱, Class를 다룰 수 있는 Handle 설정
+# 첫 Argument "pricer-service"는 앱 이름(코드에서 modal.App("pricer-service")로 만든 그 이름).
+# 두 번째 Argument "price"는 @app.function으로 데코레이트된 함수 이름.
+Pricer = modal.Cls.from_name("pricer-service", "Pricer")
+# Object 생성
+pricer = Pricer()
+
+# 객체 내 함수를 실행하여 Inference
+# 이때도 함수를 거쳐 remote()를 호출한다.
+reply = pricer.price.remote("Quadcast HyperX condenser mic, connects via usb-c to your computer for crystal clear audio")
+```
+
+Class를 사용하면 `@model.enter()` 덕분에 미리 **Load하고 재사용하여 효율적으로 동작**하도록 할 수 있다.
 
 
