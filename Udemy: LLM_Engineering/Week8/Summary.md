@@ -19,9 +19,13 @@ from modal import App, Image
 app = modal.App("hello")
 # debian_slime의 OS를 사용하고 필요한 Library를 설치
 image = Image.debian_slim().pip_install("Needed Library")
+# Token Value 등을 설정
+secrets = [modal.Secret.from_name("hf-secret")]
+# GPU 하드웨어 설정
+GPU="T4"
 
 # 아래 Decorator로 정의되는 함수를 Modal의 기본 실행 단위로 설정
-@app.function(image=image)
+@app.function(image=image, secrets=secrets, gpu=GPU, timeout=1800)
 
 # 아래부터는 다시 원래 파일에서 실행
 from 파이썬 파일명 import app, 함수명
