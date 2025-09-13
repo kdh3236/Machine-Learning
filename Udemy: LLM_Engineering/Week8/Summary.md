@@ -119,4 +119,43 @@ reply = pricer.price.remote("Quadcast HyperX condenser mic, connects via usb-c t
 
 Class를 사용하면 `@model.enter()` 덕분에 미리 **Load하고 재사용하여 효율적으로 동작**하도록 할 수 있다.
 
+**프롬포트를 받아들이고 배포된 앱을 더 쉽게 호출할 수 있는 Agent**를 생성할 수도 있다. 
+
+```
+# Agent class는 따로 구현
+# self.log()를 가짐
+from agents.agent import Agent
+
+class SpecialistAgent(Agent):
+    """
+    An Agent that runs our fine-tuned LLM that's running remotely on Modal
+    """
+
+    name = "Specialist Agent"
+    color = Agent.RED
+
+    # 생성자에서 배포된 Module을 호출한다. 
+    def __init__(self):
+        """
+        Set up this Agent by creating an instance of the modal class
+        """
+        self.log("Specialist Agent is initializing - connecting to modal")
+        Pricer = modal.Cls.from_name("pricer-service", "Pricer")
+        self.pricer = Pricer()
+        self.log("Specialist Agent is ready")
+    # price 함수를 따로 호출하여 Inference 한다.
+    def price(self, description: str) -> float:
+        """
+        Make a remote call to return the estimate of the price of this item
+        """
+        self.log("Specialist Agent is calling remote fine-tuned model")
+        result = self.pricer.price.remote(description)
+        self.log(f"Specialist Agent completed - predicting ${result:.2f}")
+        return result
+
+
+# 실제 사용
+agent = SpecialistAgent()
+agent.price("iPad Pro 2nd generation")
+```
 
