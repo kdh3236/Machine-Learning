@@ -121,7 +121,7 @@ Class를 사용하면 `@model.enter()` 덕분에 미리 **Load하고 재사용�
 
 **프롬포트를 받아들이고 배포된 앱을 더 쉽게 호출할 수 있는 Agent**를 생성할 수도 있다. 
 
-```
+```python
 # Agent class는 따로 구현
 # self.log()를 가짐
 from agents.agent import Agent
