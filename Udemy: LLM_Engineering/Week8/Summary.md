@@ -40,5 +40,32 @@ with app.run():
     reply=hello.remote()
 ```
 
-우리는 **LLM이 Prompt에 대해 응답하는 함수를** 정의하여 Modal의 실행 단위로 사용할 것이다.
+우리는 **LLM이 Prompt에서 설명하는 물건에 대해 가격을 예측하도록 하는 함수를** 정의하여 Modal의 실행 단위로 사용할 것이다.
+
+```python
+import modal
+from pricer_ephemeral import app, price
+
+# enable_output(): 출력(로그/진행상황)을 강제로 화면에 보여줌.
+with modal.enable_output():
+    with app.run():
+        result=price.remote("Quadcast HyperX condenser mic, connects via usb-c to your computer for crystal clear audio")
+result
+```
+
+이후, Modal을 이용하여 **앱을 배포할 수 있다.**
+
+먼저, **함수를 이용**하여 앱을 배포하는 과정을 알아보자.
+
+- 이전 작업과 동일하며, 파이썬 파일에 함수가 정의된 것이다.
+
+```python
+
+```
+
+이후, **Class를 이용**하여 앱을 배포하는 과정을 알아보자.
+
+- 파이썬 파일에 Class가 정의된다.
+
+
 
