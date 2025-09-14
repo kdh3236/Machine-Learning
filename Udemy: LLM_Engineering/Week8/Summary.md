@@ -236,3 +236,73 @@ collection.add(
 )
 ```
 
+이제 **RAG Pipeline**을 구현하자.
+
+- Chroma DB의 `collection.query()`를 이용하여 쉽게 구현할 수 있다.
+
+```python
+# 생성한 collection을 가지고 옴.
+client = chromadb.PersistentClient(path=DB)
+collection = client.get_or_create_collection('products')
+
+# DB에서 item()과 유사한 n_results 만큼의 List를 반환
+# 아래 코드를 함수로 만들면, item에 대해 RAG Pipeline을 이용하는 것처럼 만들 수 있다.
+# 아래 documents와 prices를 이용하여 prompt를 만들고 Frontier model에서 답을 내도록 요청할 수 있다.
+results = collection.query(query_embeddings=vector(item).astype(float).tolist(), n_results=5)
+documents = results['documents'][0][:]
+prices = [m['price'] for m in results['metadatas'][0][:]]
+```
+
+마지막으로 **Frontier model with RAG**를 **Agent로 만들기 위해 Function으로 Wraping할 수 있다.**
+
+- 이 함수는 **RAG Pipeline**을 거쳐 DB에서 유사한 정보를 얻고, 그를 바탕으로 **Prompt를 생성해 Frontier 모델에 답변**을 요청한다.
+
+**RandomForest Agent**는 이미 구현된 RandomForest Model을 사용하고 **Item을 입력 받아 Vectorize**하고 **Vectorized DB에서 Random forest 알고리즘**을 수행한다.
+
+이제 **Special Agent, RandomForest Agent 그리고 Frontier Agent**를 **Ensemble**헤보자.
+
+- 각 Agent가 예측한 결과와 각 결과에서의 최댓값, 최솟값을 이용하여 LinearRegression을 진행한다.
+- LinearRegression의 결과 (Weights, Parameter)를 .pkl 파일로 저장한다.
+- .pkl 파일로 저장한 모델을 불러오고 마찬가지로 각 Agent가 예측한 결과와 각 결과에서의 최댓값, 최솟값을 이용하여 가격을 예측한다.
+
+```python
+# 모델의 가중치, 파라미터를 저장할 때 joblib을 사용한다.
+import joblib
+from sklearn.linear_model import LinearRegression
+
+# 저장
+joblib.dump(lr, 'ensemble_model.pkl')
+# 불러오기
+joblib.load('ensemble_model.pkl')
+
+# Training
+specialists = []
+frontiers = []
+random_forests = []
+prices = []
+for item in tqdm(test[1000:1250]):
+    text = description(item)
+    specialists.append(specialist.price(text))
+    frontiers.append(frontier.price(text))
+    random_forests.append(random_forest.price(text))
+    prices.append(item.price)
+
+mins = [min(s,f,r) for s,f,r in zip(specialists, frontiers, random_forests)]
+maxes = [max(s,f,r) for s,f,r in zip(specialists, frontiers, random_forests)]
+
+X = pd.DataFrame({
+    'Specialist': specialists,
+    'Frontier': frontiers,
+    'RandomForest': random_forests,
+    'Min': mins,
+    'Max': maxes,
+})
+
+# Convert y to a Series
+y = pd.Series(prices)
+
+np.random.seed(42)
+
+lr = LinearRegression()
+lr.fit(X, y)
+```
