@@ -1,5 +1,15 @@
 ## Day1
 
+**Multi-Agents Price predictor**를 구현한다.
+
+- **Planning Agent**: 아래 세 Agent 중 어떤 Agent를 어떤 순서로 돌릴지를 결정한다.
+- **Scanner Agent**: 데이터셋에서 이상적인 Item Search
+- **Ensemble Agent**: Price 예측
+
+  - **Frontier model with RAG, Specialist Agent, Random Forest**의 결과를 모두 본 이후에 예측한다.
+  
+- **Messaging Agent**: 최종 결과 메세지를 전
+
 **Modal**: 파이썬 중심의 Serverless Platform
 
 - Computing Unit에 따라 비용 부과
@@ -39,6 +49,10 @@ with app.run():
     # remote(): 원격 클라우드에서 실행
     reply=hello.remote()
 ```
+
+먼저 **Ensemble Agent**의 구현을 살펴보자.
+
+- 가장 먼저 이를 위한 **Specialist Agent를 구현한다.**
 
 우리는 **LLM이 Prompt에서 설명하는 물건에 대해 가격을 예측하도록 하는 함수를** 정의하여 Modal의 실행 단위로 사용할 것이다.
 
@@ -157,5 +171,68 @@ class SpecialistAgent(Agent):
 # 실제 사용
 agent = SpecialistAgent()
 agent.price("iPad Pro 2nd generation")
+```
+
+## Day2
+
+**Frontier model with RAG**를 다루기 위해 Dataset에 대해 **RAG Database**를 만들자.
+
+- 여기선 LangChain을 사용하지 않는다.
+
+**Chroma Client**: DB랑 직접 소통하는 핸들
+**Collection**: 논리적인 Table
+
+```python
+import chromadb
+
+# DB 폴더명 
+DB = "products_vectorstore"
+
+# PersistentClient(): Local 폴더를 저장소로 사용하는 Client를 생성
+client = chromadb.PersistentClient(path=DB)
+
+# 만들거나 삭제할 Collection name
+collection_name = "products"
+
+# 현재 Clinet에 존재하는 Collenction name list가 반환
+existing_collection_names = client.list_collections()
+
+# 같은 이름의 Collection이 존재한다면 삭제
+if collection_name in existing_collection_names:
+    client.delete_collection(collection_name)
+    print(f"Deleted existing collection: {collection_name}")
+
+# Collection 생성
+collection = client.create_collection(collection_name)
+```
+
+이후, **SentenceTransformer**를 통해 **텍스트를 벡터로 매핑**할 수 있다.
+
+```python
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+# List의 한 Element를 벡터하나로 매핑해서 List로 반환한다.
+vector = model.encode(["Well hi there"])[0]
+```
+
+벡터로 매핑한 결과를 **collection.add()를** 통해 Chroma DB에 추가할 수 있다.
+
+
+```python
+collection = client.create_collection(collection_name)
+
+documents = [description(item) for item in train[i: i+1000]]
+vectors = model.encode(documents).astype(float).tolist()
+metadatas = [{"category": item.category, "price": item.price} for item in train[i: i+1000]]
+ids = [f"doc_{j}" for j in range(i, i+len(documents))]
+
+# id는 절대 겹치면 안 된다.
+collection.add(
+    ids=ids,
+    documents=documents,
+    embeddings=vectors,
+    metadatas=metadatas
+)
 ```
 
