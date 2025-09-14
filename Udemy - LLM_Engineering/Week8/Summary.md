@@ -612,3 +612,49 @@ if __name__=="__main__":
 
 먼저, **UI**는 **Gradio**를 이용하여 구현한다.
 
+```python
+agent_framework = DealAgentFramework()
+agent_framework.init_agents_as_needed()
+
+# Table 형식을 얻는 법
+with gr.Blocks(title="The Price is Right", fill_width=True) as ui:
+    with gr.Row():
+        gr.Markdown('<div style="text-align: center;font-size:24px">"The Price is Right" - Deal Hunting Agentic AI</div>')
+    with gr.Row():
+        gr.Markdown('<div style="text-align: center;font-size:14px">Deals surfaced so far:</div>')
+    with gr.Row():
+        # Table 형식으로 만듦
+        opportunities_dataframe = gr.Dataframe(
+            headers=["Description", "Price", "Estimate", "Discount", "URL"],
+            wrap=True,
+            column_widths=[4, 1, 1, 1, 2],
+            row_count=10,
+            col_count=5,
+            max_height=400,
+        )
+
+    # 처음 UI에 get_table 호출
+    ui.load(get_table, inputs=[opportunities], outputs=[opportunities_dataframe])
+    opportunities_dataframe.select(do_select, inputs=[opportunities], outputs=[])
+
+def table_for(opps):
+    return [[opp.deal.product_description, f"${opp.deal.price:.2f}", f"${opp.estimate:.2f}", f"${opp.discount:.2f}", opp.deal.url] for opp in opps]
+        
+def start():
+    self.agent_framework = DealAgentFramework()
+    self.agent_framework.init_agents_as_needed()
+    opportunities = self.agent_framework.memory
+    table = table_for(opportunities)
+    return table
+        
+def go():
+    self.agent_framework.run()
+    new_opportunities = self.agent_framework.memory
+    table = table_for(new_opportunities)
+    return table
+
+# 60초마다 .tikc() 호출
+# tick()은 go()를 호출하여 새로고침처럼 동작한다.
+timer = gr.Timer(value=60)
+timer.tick(go, inputs=[], outputs=[opportunities_dataframe])
+```
