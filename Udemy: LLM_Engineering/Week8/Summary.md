@@ -306,3 +306,80 @@ np.random.seed(42)
 lr = LinearRegression()
 lr.fit(X, y)
 ```
+
+## Day3
+
+**Structured Outputs**: JSON 형식 대신 Python Class로 답변을 정의하여 더욱 안정감있게 대답하도록 한다.
+
+- 모델이 Class의 Instance를 생성한다.
+
+- 모델이 생성한 JSON이 정확히 스키마에 맞는지 확인되고, 맞지 않으면 에러
+-
+- 프롬프트만으로 JSON을 대충받는 것보다 신뢰성이 높다.
+
+```python
+# 인터넷에서 물건 판매 정보를 Scraping
+# 따로 정의한 Python class
+from agents.deals import ScrapedDeal, DealSelection
+
+# Top 10 Deals를 불러온다.
+deals = ScrapedDeal.fetch(show_progress=True)
+```
+
+Class로 답변 형식을 지정하는 것은 아래와 같이 할 수 있다.
+
+```python
+from pydantic import BaseModel
+
+# BaseModel을 상속하면 타입 주석에 맞게 자동으로 __init__()이 호출된다.
+class Deal(BaseModel):
+    """
+    A class to Represent a Deal with a summary description
+    """
+    product_description: str
+    price: float
+    url: str
+
+class DealSelection(BaseModel):
+    """
+    A class to Represent a list of Deals
+    """
+    deals: List[Deal]
+
+# List[Deal]은 아래의 JSON 형식과 완벽히 동일하다.
+
+"""
+{
+  "deals": [
+    {
+      "product_description": "str",
+      "price": 3.0,
+      "url": "~~"
+    }
+  ]
+}
+"""
+```
+
+이후에는 Frontier model을 호출할 때, 위에서 정의한 **DealSelection class**를 사용할 수 있다.
+
+```python
+# beta.chat.completions.parse: class 객체로 답변할 수 있도록 함.
+completion = openai.beta.chat.completions.parse(
+  model="gpt-4o-mini",
+  messages=[
+      {"role": "system", "content": system_prompt},
+      {"role": "user", "content": user_prompt}
+  ],
+  response_format=DealSelection
+)
+
+# 답변 형식도 기존과 다름
+result = completion.choices[0].message.parsed  
+```
+
+마지막으로 Website에서 Deal을 추천받고, Detail을 바탕으로 Frontier Model에게 Deal에 대해 **가격을 포함하여 정해진 형식의 정리본**을 요청한다.
+
+- 이를 **Scanner Agent**로 사용한다.
+
+## Day4
