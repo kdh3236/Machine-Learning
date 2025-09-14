@@ -9,7 +9,7 @@
 2. **`미적분학`, `선형대수학`, `확률과 통계`** 복습
     - 확률과 통계는 **Stanford - Introduction to Statistics** 강의 수강
     - 미적분학, 선형대수학은 학부 강의 복습
-3. **`Numpy`, `Pandas`, `Seaborn`, `Matplot`** 주요 함수 공부 
+3. **`Numpy`, `Pandas`, `Seaborn`, `Matplotlib`** 주요 함수 공부 
 
 **2025년도**
 
