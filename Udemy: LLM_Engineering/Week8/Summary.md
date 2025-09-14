@@ -383,3 +383,232 @@ result = completion.choices[0].message.parsed
 - 이를 **Scanner Agent**로 사용한다.
 
 ## Day4
+
+**Agentic AI Solution의 특징**
+
+1. 큰 문제를 작은 문제로 나누어 단계별로 처리
+
+2. Structed outputs / Fucntion Calling / Using tools
+
+3. 모든 Agent가 공통으로 사용할 수 있는 부분이 존재
+
+4. Planning Agent: 각 Agent가 어떤 동작을 할지
+
+5. Autonomy & Memory: 사람의 도움 없이 AI가 자동으로 처리한다.
+
+**Planning Agent**와 **Messaging Agent**의 구현에 대해 살펴보자.
+
+먼저 **Messaging Agent**로 두 가지를 고민할 수 있다.
+
+- **Twilio**와 **Pushover**이 있는데 강의에서는 **Pushover**를 추천한다.
+- 미국 내 규제 때문에 **Twilio**는 서류 작업이 많이 필요하다고 한다.
+
+```python
+### twilio를 사용하는 경우
+from twilio.rest import Client
+
+account_sid = os.getenv('TWILIO_ACCOUNT_SID', 'your-sid-if-not-using-env')
+auth_token = os.getenv('TWILIO_AUTH_TOKEN', 'your-auth-if-not-using-env')
+self.me_from = os.getenv('TWILIO_FROM', 'your-phone-number-if-not-using-env')
+self.me_to = os.getenv('MY_PHONE_NUMBER', 'your-phone-number-if-not-using-env')
+self.client = Client(account_sid, auth_token)
+self.log("Messaging Agent has initialized Twilio")
+
+self.log("Messaging Agent is sending a text message")
+message = self.client.messages.create(
+          from_=self.me_from,   # 발신 번호 (Twilio 콘솔에서 승인/구매한 번호)
+          body=text,            # 보낼 텍스트
+          to=self.me_to         # 수신 번호
+)
+
+
+### Pushover를 사용하는 경우
+self.pushover_user = os.getenv('PUSHOVER_USER', 'your-pushover-user-if-not-using-env')
+self.pushover_token = os.getenv('PUSHOVER_TOKEN', 'your-pushover-user-if-not-using-env')
+self.log("Messaging Agent has initialized Pushover")
+
+self.log("Messaging Agent is sending a push notification")
+conn = http.client.HTTPSConnection("api.pushover.net:443")
+conn.request(
+      "POST",
+      "/1/messages.json",
+      urllib.parse.urlencode(
+        {
+          "token": self.pushover_token,
+          "user": self.pushover_user,
+          "message": text,
+          "sound": "cashregister"
+        }
+      ),
+      { "Content-type": "application/x-www-form-urlencoded" }
+)
+conn.getresponse()
+
+### 공통
+# opportunity는 Opportunity 객체로 실제 사용자에게 알림을 보낼만한 LLM 답변 객체를 의미
+text = f"Deal Alert! Price=${opportunity.deal.price:.2f}, "
+text += f"Estimate=${opportunity.estimate:.2f}, "
+text += f"Discount=${opportunity.discount:.2f} :"
+text += opportunity.deal.product_description[:10]+'... '
+text += opportunity.deal.url
+
+# 채널별 발송
+if DO_TEXT:
+    self.message(text)  # [Twilio] 호출
+if DO_PUSH:
+    self.push(text)     # [Pushover] 호출
+
+self.log("Messaging Agent has completed")
+```
+
+이제 **Planning Agent**에 대해 살펴보자.
+
+- 여러 Agent를 호출해야 한다. (Class object를 주로 활용하는 이유)
+- `plan()` 함수를 호출해서 Planning 한다.
+
+이전에 정리할 점이 있다.
+
+- **Deal(원천 데이터)**: 스크래핑/피드에서 올라온 실제 상품 정보(가격, 설명, 링크 등) / 반환 형식을 지정하기 위해 구현한 Class이다.
+
+- **Opportunity(판단 결과)**: Deal + 당신의 가격 추정(estimate) + 평가 메타데이터를 합쳐 “알림 보낼 만한가?”를 표현하는 객체.
+
+```python
+class PlanningAgent(Agent):
+
+    name = "Planning Agent"
+    color = Agent.GREEN
+    DEAL_THRESHOLD = 50
+
+    def __init__(self, collection):
+        """
+        Create instances of the 3 Agents that this planner coordinates across
+        """
+        self.log("Planning Agent is initializing")
+        # Agent load
+        self.scanner = ScannerAgent()
+        self.ensemble = EnsembleAgent(collection)
+        self.messenger = MessagingAgent()
+        self.log("Planning Agent is ready")
+
+      # Scrapping을 하고 LLM을 거쳐 얻은 Deal 객체 하나를 받아서
+      # discount: 예측 가격과 실제 판매 가격의 차이 를 얻어
+      # 원래의 deal 객체와 estimate, discount를 묶어 Opportunity 객체로 넘김
+      def run(self, deal: Deal) -> Opportunity:
+        """
+        Run the workflow for a particular deal
+        :param deal: the deal, summarized from an RSS scrape
+        :returns: an opportunity including the discount
+        """
+        self.log("Planning Agent is pricing up a potential deal")
+        estimate = self.ensemble.price(deal.product_description)
+        discount = estimate - deal.price
+        self.log(f"Planning Agent has processed a deal with discount ${discount:.2f}")
+        return Opportunity(deal=deal, estimate=estimate, discount=discount)
+
+    def plan(self, memory: List[str] = []) -> Optional[Opportunity]:
+        """
+        Run the full workflow:
+        1. Use the ScannerAgent to find deals from RSS feeds
+        2. Use the EnsembleAgent to estimate them
+        3. Use the MessagingAgent to send a notification of deals
+        :param memory: a list of URLs that have been surfaced in the past
+        :return: an Opportunity if one was surfaced, otherwise None
+        """
+        self.log("Planning Agent is kicking off a run")
+        selection = self.scanner.scan(memory=memory)
+        if selection:
+            # 한 Batch마다 5개의 deal을 다룸
+            # Oppurtunity 객체의 List
+            opportunities = [self.run(deal) for deal in selection.deals[:5]]
+            # 내림차순으로 정렬
+            opportunities.sort(key=lambda opp: opp.discount, reverse=True)
+            best = opportunities[0]
+            self.log(f"Planning Agent has identified the best deal has discount ${best.discount:.2f}")
+            if best.discount > self.DEAL_THRESHOLD:
+                # Discount가 DEAL_THRESHOLD 이상이면 알람을 보냄
+                self.messenger.alert(best)
+            self.log("Planning Agent has completed a run")
+            return best if best.discount > self.DEAL_THRESHOLD else None
+        return None
+```
+
+**Memory**: 기억과 재사용으로 연결되고, **중복 알림·불필요한 모델 호출·비용을 크게 줄일 수 있다.**
+
+전체 코드의 **초기화, 실행, 시각화**를 담당하는 **Agent Framework**는 아래와 같이 구현할 수 있다.
+
+```python
+class DealAgentFramework:
+
+    DB = "products_vectorstore"
+    MEMORY_FILENAME = "memory.json"
+
+    # Setting 및 Initialize
+    def __init__(self):
+        init_logging()
+        load_dotenv()
+        client = chromadb.PersistentClient(path=self.DB)
+        self.memory = self.read_memory()
+        self.collection = client.get_or_create_collection('products')
+        self.planner = None
+
+    def init_agents_as_needed(self):
+        if not self.planner:
+            self.log("Initializing Agent Framework")
+            self.planner = PlanningAgent(self.collection)
+            self.log("Agent Framework is ready")
+        
+    def read_memory(self) -> List[Opportunity]:
+        if os.path.exists(self.MEMORY_FILENAME):
+            with open(self.MEMORY_FILENAME, "r") as file:
+                data = json.load(file)
+            opportunities = [Opportunity(**item) for item in data]
+            return opportunities
+        return []
+
+    def write_memory(self) -> None:
+        data = [opportunity.dict() for opportunity in self.memory]
+        with open(self.MEMORY_FILENAME, "w") as file:
+            json.dump(data, file, indent=2)
+
+    def log(self, message: str):
+        text = BG_BLUE + WHITE + "[Agent Framework] " + message + RESET
+        logging.info(text)
+
+    def run(self) -> List[Opportunity]:
+        self.init_agents_as_needed()
+        logging.info("Kicking off Planning Agent")
+        # planning agent 호출
+        # Best discount opportunity 객체를 받아옴
+        result = self.planner.plan(memory=self.memory)
+        logging.info(f"Planning Agent has completed and returned: {result}")
+        if result:
+            self.memory.append(result)
+            # 메모리에 추가
+            self.write_memory()
+        return self.memory
+
+    @classmethod
+    def get_plot_data(cls, max_datapoints=10000):
+        client = chromadb.PersistentClient(path=cls.DB)
+        collection = client.get_or_create_collection('products')
+        result = collection.get(include=['embeddings', 'documents', 'metadatas'], limit=max_datapoints)
+        vectors = np.array(result['embeddings'])
+        documents = result['documents']
+        categories = [metadata['category'] for metadata in result['metadatas']]
+        colors = [COLORS[CATEGORIES.index(c)] for c in categories]
+        tsne = TSNE(n_components=3, random_state=42, n_jobs=-1)
+        reduced_vectors = tsne.fit_transform(vectors)
+        return documents, reduced_vectors, colors
+
+# 이 코드 이후 Tenrminal에서 python 명령어로 실행하면
+# DealAgentFramework().run()이 실행된다.
+if __name__=="__main__":
+    DealAgentFramework().run()
+```
+
+## Day5
+
+이제 구현한 모델의 **UI**를 생성하고, 모델이 **사람의 입력없이 자동으로 동작할 수 있도록 구현해야 한다.**
+
+먼저, **UI**는 **Gradio**를 이용하여 구현한다.
+
