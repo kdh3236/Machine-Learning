@@ -22,7 +22,8 @@
 9. **`Machigan [EECS 498-007 / 598-005]` 강의** 수강
      - 학부 `컴퓨터 비전` 강의가 `Stanford - CS231n` 기반
      - `CS231n-2017`의 Instructor이셨던 교수님의 비교적 최신 강의
-10. **Udemy LLM_ENGINEERING 강의 수강**
+10. **Udemy - LLM_ENGINEERING 강의 수강**
+11. **Coursera - Generative AI Engineering 수강**
 
 **프로젝트**
 
