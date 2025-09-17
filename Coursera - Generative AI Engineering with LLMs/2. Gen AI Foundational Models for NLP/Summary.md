@@ -128,6 +128,8 @@ nltk.trigrams(tokens)
 
 - 이를 통해 Prediction 할 수 있다.
 
+- $$P(W_{\text{next}} | W_{\text{context}}) = \frac{\text{Count}(W_{\text{context}}, W_{\text{next}})}{\text{Count}(W_{\text{context}})}$$
+
 ```python
 vocab_probabilities = {}  # Initialize a dictionary to store predicted word probabilities
 context_size = len(list(freq_grams.keys())[0])  # Determine the context size from n-grams keys
@@ -152,3 +154,31 @@ for next_word in vocabulary:
 vocab_probabilities = sorted(vocab_probabilities.items(), key=lambda x: x[1], reverse=True)
 ```
 
+위에선 `nltk`를 이용하여 **N-grams**를 구현했다.
+
+만약, bigram, trigram이 아니라면 임의로 N-grams을 생성하는 함수를 아래와 같이 작성할 수 있다.
+
+```python
+ngrams = [
+    (
+        [tokens[i - j - 1] for j in range(CONTEXT_SIZE)],  # Context words (previous words)
+        tokens[i]  # Target word (the word to predict)
+    ) for i in range(CONTEXT_SIZE, len(tokens))
+]
+```
+
+이후, 생성한 ngrams을 입력받아서 Embedding한 결과를 Flatten한 이후, Linear layer의 입력으로 사용할 수 있다.
+
+- Flatten 하는 이유는 N-grams의 경우. N개의 단어에 대한 각 ID가 List로 반환되기 때문에 이를 **한 Vector로 다루기 위함**이다.
+
+```python
+context, target=ngrams[0]
+linear = nn.Linear(embedding_dim*CONTEXT_SIZE,128)
+linear(context)
+
+# Embedding
+my_embeddings=embeddings(torch.tensor(vocab(context)))
+# Flatten
+my_embeddings=my_embeddings.reshape(1,-1)
+linear(my_embeddings)
+```
