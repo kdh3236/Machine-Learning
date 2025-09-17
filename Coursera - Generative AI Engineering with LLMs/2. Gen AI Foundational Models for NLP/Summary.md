@@ -167,7 +167,7 @@ ngrams = [
 ]
 ```
 
-이후, 생성한 ngrams을 입력받아서 Embedding한 결과를 Flatten한 이후, Linear layer의 입력으로 사용할 수 있다.
+이후, 생성한 **ngrams을 입력받아서 Embedding한 결과**를 **Flatten한 이후, Linear layer의 입력**으로 사용할 수 있다.
 
 - Flatten 하는 이유는 N-grams의 경우. N개의 단어에 대한 각 ID가 List로 반환되기 때문에 이를 **한 Vector로 다루기 위함**이다.
 
@@ -182,3 +182,5 @@ my_embeddings=embeddings(torch.tensor(vocab(context)))
 my_embeddings=my_embeddings.reshape(1,-1)
 linear(my_embeddings)
 ```
+
+___
