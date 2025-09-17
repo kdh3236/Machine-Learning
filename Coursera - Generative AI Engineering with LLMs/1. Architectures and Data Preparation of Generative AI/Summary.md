@@ -135,6 +135,8 @@ tokenizer = XLNetTokenizer.from_pretrained("bert-base-uncased")
 tokenizer.tokenize("IBM taught me tokenization.")
 ```
 
+___
+
 ## Dataloader
 
 Data를 전처리하고 미리 준비할 수 있도록 도와주는 모듈
