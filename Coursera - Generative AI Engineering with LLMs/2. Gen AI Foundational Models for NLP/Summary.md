@@ -184,3 +184,188 @@ linear(my_embeddings)
 ```
 
 ___
+
+# Word2Vec
+
+> **단어를 벡터로 Embedding하는 모델**
+
+Neural Network에서 특정 단어를 Embedding하면 Vector Space에서의 Vector로 나타낼 수 있다.
+
+- 단어들간의 벡터 덧셈 / 뺄셈을 통해 다른 단어를 나타낼 수도 있다.
+- 유사한 단어는 Vector Space에서 근처에 위치한다.
+- 두 Vector의 유사도는 **Inner Product**를 통해 구할 수 있다.
+
+**Word2Vec**에서 `t` (target index)를 설정하면, Context vector는 $W_{t-1}, W_{t+1}$이 된다.
+
+- 위 경우는 **Context Window**가 2인 경우이다.
+
+## Continous Bag of Words (CBOW) Model
+
+- **Word2Vec Model** 중 하나.
+- 이 모델은 **Context vector**만을 Nueral Network의 Input으로 넘겨, Target word를 예측하도록 한다.
+- **Context vector**는 $W_{t-1}, W_{t+1}$의 위치만 1로 만든 vector를 생성하고, $W_t$를 예측하도록 한다.
+
+ **CBOW Model**을 구현해보자.
+
+ 먼저 **Training**을 위한 데이터는 아래와 같이 구성한다.
+
+ - Target word가 될 수 있는 모든 Word에 대해 (Context, Target) 쌍을 구성한다.
+
+```python
+CONTEXT_SIZE = 2
+
+
+cobow_data = []
+
+# modified code
+
+for i in range(CONTEXT_SIZE, len(tokenized_toy_data ) - CONTEXT_SIZE):
+
+    context = (
+
+        [tokenized_toy_data [i - CONTEXT_SIZE + j] for j in range(CONTEXT_SIZE)]
+
+        + [tokenized_toy_data [i + j + 1] for j in range(CONTEXT_SIZE)]
+
+    )
+
+    target = tokenized_toy_data [i]
+
+    cobow_data.append((context, target))
+```
+
+이후, **collate function**은 Context, Target을 각각 Vocab을 통해 정수 ID로 매핑하고 Offset을 설정한다.
+
+**CBOW Model** class는 아래와 같이 정의한다.
+
+```python
+class CBOW(nn.Module):
+    def __init__(self, vocab_size, embed_dim, num_class):
+        self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=False)
+        self.linear1 = nn.Linear(embed_dim, embed_dim//2)
+        self.fc = nn.Linear(embed_dim//2, vocab_size)
+        self.init_weights()
+
+    def init_weights(self):
+        initrange = 0.5
+        self.fc.weight.data.uniform_(-initrange, initrange)
+        self.fc.bias.data.zero_()
+        
+    def forward(self, text, offsets):
+        out = self.embedding(text, offsets)
+        out = torch.relu(self.linear1(out))
+        return self.fc(out)
+```
+
+## Skip-Gram Model
+
+- **Word2Vec Model** 중 하나
+- Context Vector로 부터 Target Vector를 예측하는 것이 아니라, **Target Vector를 이용하여 Context Vector을 예측**하도록 하는 방식
+- 위 방법대로 Training하면, **Target Vector가 자주 등장하는 Context Vector까지 학습하여 Vector로 Embedding**이 된다.
+
+**Context Window = 2**인 예시를 보자.
+
+- Target word = $w_t$라면, context vector는 ($w_{t-2}, w_{t-1}, w_{t+1}, w_{t+2}$)가 된다.
+- 이때 모델이 **P($w_{t-2}, w_{t-1}, w_{t+1}, w_{t+2}$ | $w_t$)의 확률**이 최대가 되도록 할 수도 있고, **P($w_i$ | $w_t$)의 확률**이 최대가 되도록 할 수도 있다.
+
+**CBOW Model**에서와 동일한 방식으로 (context, target) 쌍을 구성한 이후 아래와 같이 **Skip Gram Model**을 위한 데이터를 만들 수 있다.
+
+- 여기선 P($w_i$ | $w_t$)의 확률이 최대가 되도록 구현한다.
+
+- 이를 위해 **(context word, target word) 쌍을 구성**한다.
+
+```python
+skip_data_=[[(sample[0],word) for word in  sample[1]] for sample in skip_data]
+```
+
+
+**Skip-Gram Model** Class는 아래와 같이 정의할 수 있다.
+
+```python
+class SkipGram_Model(nn.Module):
+
+    def __init__(self, vocab_size, embed_dim):
+        super(SkipGram_Model, self).__init__()
+        self.embeddings = nn.Embedding(
+            num_embeddings=vocab_size,
+            embedding_dim=embed_dim
+        )
+        self.fc = nn.Linear(in_features=embed_dim, out_features=vocab_size)
+
+    def forward(self, text):
+        out = self.embeddings(text)
+        out = torch.relu(out)
+        out = self.fc(out)
+        
+        return out
+```
+
+## GloVe
+
+> Stanford에서 제작한 Large-scale data for word embeddings
+
+큰 데이터셋을 이용해 미리 학습한 이런 모델을 사용하면 **시간도 절약되고 풍부한 표현**을 얻을 수 있다.
+
+먼저 **GloVE**를 Load한다.
+
+```python
+from torchtext.vocab import GloVe,vocab
+glove_vectors_6B = GloVe(name ='6B')
+
+# torch.nn.Embedding.from_pretrained를 통해 Pre-trained된 GloVe Layer Weight를 Load
+embeddings_Glove6B = torch.nn.Embedding.from_pretrained(glove_vectors_6B.vectors,freeze=True)
+```
+**GloVe**를 통해 **단어를 Token ID로 매핑**하고 **Vocab**을 생성하는 작업은 다음과 같이 할 수 있다.
+
+```python
+glove_vectors_6B.stoi # Word -> ID 정보가 담긴 Dictionary 반환
+
+embeddings_Glove6B.weight # GloVe에서 각 단어의 정수 ID에 해당되는 Vector를 저장
+# embeddings_Glove6B.weight는 Embedding Matrix를 갖고 있고, Index에 대응되는 행을 반환한다.
+# One-hot vector와의 Matrix Multiplication과 동일하다. 
+embedding_vector = embeddings_Glove6B.weight[word_to_index[word]] # Word에 대응되는 Vector를 반환
+
+# Vocabulary 생성
+# 0: Vocab에 ㅗㅍ함할 단어의 Minimum Frequency
+vocab = vocab(glove_vectors_6B.stoi, 0,specials=('<unk>', '<pad>'))
+# Vocab에 없는 단어가 오면, vocab["<unk>"]의 index로 세팅하도록 한다. 
+vocab.set_default_index(vocab["<unk>"])
+```
+
+## gensim
+
+> **Word2Vec Model**을 쉽게 다룰 수 있도록 하는 Python Package
+
+```python
+from gensim.models import Word2Vec
+
+# Vector-dimension, Context Window
+# min_count 이상 등장힌 단어만 Vocab에 추가, workers=학습에 사용할 CPU Core 개수
+w2v_model = Word2Vec(sentences, vector_size=100, window=3, min_count=1, workers=4)
+
+# sentences (Data)를 이용하여 Vocab 생성
+w2v_model.build_vocab(sentences, progress_per=10000)
+
+# total_examples: Training에 사용할 단어의 총 개수
+# w2v_model.corpus_count: w2v_model의 Vocab에 포함된 문장의 총 개수
+w2v_model.train(sentences, total_examples=w2v_model.corpus_count, epochs=30, report_delay=1)
+
+# Finding similar words
+similar_words = w2v_model.wv.most_similar("pizza")
+print("Similar words to 'pizza':", similar_words)
+
+# Calculating word similarity
+similarity = w2v_model.wv.similarity("pizza", "pasta")
+print("Similarity between 'pizza' and 'pasta':", similarity)
+
+# Extract word vectors and create word-to-index mapping
+word_vectors = w2v_model.wv
+
+# a dictionary to map words to their index in vocab
+word_to_index = {word: index for index, word in enumerate(word_vectors.index_to_key)}
+
+# Create an instance of nn.Embedding and load it with the trained vectors
+embedding_dim = w2v_model.vector_size
+embedding = torch.nn.Embedding(len(word_vectors.index_to_key), embedding_dim)
+embedding.weight.data.copy_(torch.from_numpy(word_vectors.vectors))
+```
