@@ -1,4 +1,4 @@
-## Embedding
+# Embedding
 
 **One-hot vector**
 
@@ -369,3 +369,56 @@ embedding_dim = w2v_model.vector_size
 embedding = torch.nn.Embedding(len(word_vectors.index_to_key), embedding_dim)
 embedding.weight.data.copy_(torch.from_numpy(word_vectors.vectors))
 ```
+
+# Seq2Seq Model
+
+> Input을 처리하는 Encoder와 Output을 생성하는 Decoder가 결합된 형태의 Model
+
+**Seq2Seq Model**을 살펴보기 전 Neural Network을 이용한 **Sequence Data의 처리**에 대해 알아보자.
+
+- 문장을 통한 Translation이나 Classification을 수행해야 하는 경우에 대해 살펴보자.
+
+RNN 이전의 Neural Network는 문장을 구성하는 각 단어들을 **One-hot vector**로 생성하고, 문장을 구성하는 모든 **One-hot vector**를 합하여 Input으로 사용하였다.
+
+- 그러나 이 방법은 **문장 내에서 단어를 구성하는 순서가 달라져도 Network가 그 의미 차이를 인지할 수 없다.**
+
+- RNN 이전의 Neural Network가 Input을 받아들이는 방식은 **iid (independently and identically distributed)에서 Sampling을 하는 것**과 같다.
+
+하지만, **Sequence Data**에선 이전 단어가 나왔을 때의 기억을 바탕으로 **iid**가 아니라 **조건부 확률**처럼 동작해야한다.
+
+- 이를 위해 기존 Neural Network가 아닌 **새로운 구조의 Neural Network**가 요구되었다.
+
+**RNNs**: Model이 지금까지 기억하고 있는 **Hidden State**와 **현재의 Input**을 이용하여 결과를 생성한다.
+
+- Short-term memory
+
+**RNNS**이 Short-term memory이기 때문에, 이를 보완하기 위한 **GRUs, LSTMs***가 사용된다.
+
+___
+
+**Seq2Seq Model**은 Encoder와 Decoder가 따로 존재하기 때문에, **Input의 길이와 Output의 길이가 달라도 된다**는 장점이 있다.
+
+**Seq2Seq Model**은 주로 **통역**에 사용된다.
+
+- 통역에 사용할 경우, Input sentence의 언어와 Output sentence의 언어가 다르기 때문에, **Input과 Output의 Vocab을 각각 구현**해야 한다.
+
+통역을 위한 Seq2Seq Model을 Training 할 때, **모델이 Prediction을 잘하도록 설계**해야 한다.
+
+- Loss로는 각 위치의 Label 예측과의 차이를 모두 계산하여 더한 **Cross Entropy Loss**를 사용한다.
+
+**Encoder - Decoder Model with RNNs**
+
+먼저, Encoder에사는 **Output을 생성할 필요가 없다**.
+
+- Encoder에서 사용하던 **Hidden State을 Decoder**로 그대로 넘겨주면 된다.
+- Encoder는 **Embedding of Inputs과 RNN Cell**로 이루어져 있다.
+- Input은 Embedding layer를 거쳐 RNN Cell로 들어가고 직전 Hidden State도 RNN Cell로 들어간다.
+
+Decoder는 Encoder에 Output을 생성하기 위한 **Linear Layer와 Softmax funciton이 추가**된다. 
+
+
+PyTorch로 구현하기 위해선 **Encoder, Decoder** Class를 각각 따로 정의한다.
+
+- Encoder object와 Decoder object를 모두 parameter로 받아 사용하는 **Seq2Seq** Class를 정의할 수도 있다.
+
+Training 시에는 Decoder가 생성한 Output의 Argmax가 Target과 동일한지 확인하면 된다.
