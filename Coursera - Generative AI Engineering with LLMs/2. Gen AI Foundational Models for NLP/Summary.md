@@ -408,7 +408,7 @@ ___
 
 **Encoder - Decoder Model with RNNs**
 
-먼저, Encoder에사는 **Output을 생성할 필요가 없다**.
+먼저, Encoder은 **Output을 생성할 필요가 없다**.
 
 - Encoder에서 사용하던 **Hidden State을 Decoder**로 그대로 넘겨주면 된다.
 - Encoder는 **Embedding of Inputs과 RNN Cell**로 이루어져 있다.
@@ -422,3 +422,19 @@ PyTorch로 구현하기 위해선 **Encoder, Decoder** Class를 각각 따로 �
 - Encoder object와 Decoder object를 모두 parameter로 받아 사용하는 **Seq2Seq** Class를 정의할 수도 있다.
 
 Training 시에는 Decoder가 생성한 Output의 Argmax가 Target과 동일한지 확인하면 된다.
+
+**Decoder**를 Training하는 경우에는 **Teacher Forcing**을 사용한다.
+
+- 이전 출력의 오차가 누적되서 Training을 망치지 않도록, **특정 확률로 Training 시에는 Input 값으로 Ground Truth을 사용**한다.
+- 예를 들어, Random value를 받아 그 값이 설정한 **확률값을 넘으면 Ground Truth**를 다음 Step의 Input으로, 넘지 않으면 **모델의 예측값을 그대로 사용**한다.
+
+**Decoder**는 한번에 하나의 입력으로 출력을 만들도록 설계하고, 반복문을 이용하여 Training 한다.
+
+- 이때, **시작 Token (Input)은 <BOS>**이다.
+
+**Inference** 때는 **<EOS> Token**이 생성되면 종료하도록 한다.
+
+**Seq2Seq Model**을 구현할 때에는 **Encoder와 Decoder의** **Hidden dimension이 동일**해야 하고, **RNN Cell의 Layer 개수가 동일**해야 한다.
+
+
+**BLEU (Bilingual Evaluation Understudy) score**: N-Grams을 기반으로 **생성된 문장과 Ground Truth 문장이 얼마나 유사한지**를 평가하는 지표
