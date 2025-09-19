@@ -13,7 +13,37 @@
 - **Bag of Words**가 입력이라면, 결과는 문장을 이루는 **각 단어들의 Embedding Vector의 합**이다.
 - 한 문장을 표현할 때, **Dimension이 감소**하게 된다.
 
-**Embedding Bag**: 문장을 구성하는 각 단어들의 Embedding vector의 합 등으로 **문장을 하나의 Vector로 표현하는 방법**
+**Embedding Bag**: 문장을 구성하는 각 단어들의 **Embedding vector의 합** 등으로 **문장을 하나의 Vector로 표현하는 방법**
+
+- `nn.EmbeddingBag()`: nn.Embedding과 유사하지만, 단어들의 임베딩 벡터들을 합치는(평균, 합, 최대값) 작업을 내장
+
+
+**Text -> Vocab -> Embedding의 과정**을 자세히 살펴보자.
+
+```python
+tokenizer = get_tokenizer('spacy', language='en_core_web_sm')
+# 문장을 Tokenizer를 이용하여 Token (text 형태)의 집합으로 반환
+def yield_tokens(data_iter):
+    for data_sample in data_iter:
+        yield tokenizer(data_sample)
+data_iter = iter(dataset)
+# Token을 기반으로 Vocabulary 생성
+vocab = build_vocab_from_iterator(yield_tokens(data_iter))
+
+# vocab(token): Text->정수 ID로 매핑
+input_ids=lambda x:[torch.tensor(vocab(tokenizer(data_sample))) for data_sample in dataset]
+index=input_ids(dataset)
+
+embedding_dim = 3
+n_embedding = len(vocab)
+# Embedding Layer는 (Vocabulary_size, Embedding_dimension) 형태
+# nn.Embedding은 정수 ID 하나를 입력받아서 (Vocabulary_size, Embedding_dimension) 크기의 Embedding 행렬에서
+# 정수 ID에 맞는 행을 선택한다.
+embeds = nn.Embedding(n_embedding, embedding_dim)
+i_like_cats=embeds(index[0])
+impartial_to_hippos=embeds(index[-1])
+
+```
 
 **Embedding in PyTorch (Using Neural Network)**
 
@@ -78,7 +108,6 @@ criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=LR)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.1)
 ```
-
 
 ## N-grams
 
