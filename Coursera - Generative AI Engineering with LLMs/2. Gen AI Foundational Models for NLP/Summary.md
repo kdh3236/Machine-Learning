@@ -436,5 +436,53 @@ Training 시에는 Decoder가 생성한 Output의 Argmax가 Target과 동일한�
 
 **Seq2Seq Model**을 구현할 때에는 **Encoder와 Decoder의** **Hidden dimension이 동일**해야 하고, **RNN Cell의 Layer 개수가 동일**해야 한다.
 
+# Evaluating Matrices
 
-**BLEU (Bilingual Evaluation Understudy) score**: N-Grams을 기반으로 **생성된 문장과 Ground Truth 문장이 얼마나 유사한지**를 평가하는 지표
+특정 문장이 생성될 확률은 두 가지로 나타낼 수 있다.
+
+1. $P(W_t, ..., W_2, W_1)$ = $P(W_1)P(W_2|W_1)P(W_3|W_2, W_1)...P(W_t|W_{t-1}, ..., W_{1})$
+
+2. $P(W_t, ..., W_2, W_1)$ = $P(W_t|W_{t-1}, \theta)P(W_{t-1}|W_{t-2}, \theta)...P(W_2|W_1, \theta)$
+
+       - $\theta$는 모델이 학습한 파라미터, 분포 등을 나타낸다.
+
+위에서 (2)의 경우에, **Cross Entropy Loss**를 사용할 수 있다.
+
+- 이 때, **Target Probability Distribution과 Prediction Probability Distribution이 일치하면 Loss가 0**이 된다.
+
+NLP 분야 또는 텍스트 생성형 모델의 **성능을 평가하는 여러 지표**가 있다.
+
+- **Ground Truth Text와 Generated Text간의 Similarity**를 평가한다.
+
+## Perplexity
+
+PPL(W) = $e^{CELoss}$
+
+- CELoss에 비례하여 증가하기 때문에, 값이 작을수록 좋은 모델로 평가된다.
+
+## N-gram
+
+Text를 각각 N-gram으로 묶었을 때, **Ground Truth의 N-gram과 일치하는 N-gram의 개수**를 사용한다.
+
+- **Precision** = 일치하는 N-gram의 개수 / Generated에서의 N-gram의 개수
+- **Recall** = 일치하는 N-gram의 개수 / Ground Truth에서의 N-gram의 개수
+
+**F1-Score** = 2 x (Precision x Recall) / (Precision + Recall)
+
+- **Harmonic mean**을 사용한다.
+
+## Library
+
+**NLTK Library**
+
+- **BLEU (Bilingual Evaluation Understudy) score**: N-Grams을 기반으로 **생성된 문장과 Ground Truth 문장이 얼마나 유사한지**를 평가하는 지표
+
+      - `nlrk.translate.bleu_score`
+
+- **METEOR**
+
+      - `nltk.translate.meteor _score`
+
+**PyTorch Library**
+
+- `torch.nn.CrossEntropyLoss`
