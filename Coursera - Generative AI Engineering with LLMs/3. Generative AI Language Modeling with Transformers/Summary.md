@@ -16,6 +16,8 @@ Learnable Parameter가 아니라, **고정된 Positional Vector**로는 **Sin, C
 
 - $i$ = Encoding Dimension이 m이라고 하면 **0 ~ m까지의 Dimension index**
 
+- $d_{model}$ = Word Embedding Dimension
+
 - **0~m-1** 까지의 index를 같는 Array의 각 Element를 $PE$ 식에 맞춰서 채워넣는다.
 
 **Leanable Parameter**로 Neural Network가 **Positional Encoding Vector 자체를 학습**하도록 구현할 수도 있다.
@@ -116,8 +118,103 @@ $A$를 Value와 Matrix Multiplication한 결과로 나오는 Matrix가 **Context
 
 일반적으로 **LLM**에서는 Encoder 입력 = 질문(소스) + (선택) 정보 컨텍스트 / Decoder 입력 = 정답의 앞부분(BOS/이전 생성 토큰) 으로 구성된다.
 
-**Transformer Block**을 **여러 Layer로 구성**해서 더 복잡한 Sequence Data를 처리할 수도 있다.\
+**Transformer Block**을 **여러 Layer로 구성**해서 더 복잡한 Sequence Data를 처리할 수도 있다.
 
 - 이 경우 **Layer의 개수도 Hyperparameter**이다.
 
 Multi-haed의 **Head 개수도 중요한 Hyperparameter**이다.
+
+# Implementation
+
+Attention 개념을 이용한 **Translation model**을 생성하는 과정은 아래와 같다.
+
+1. 변역할 언어와 변역 결과로 나올 언어의 Vocabulary를 각각 구성한다.
+2. 각 단어를 Tokenization하고 Vocabulary를 이용하여 One-hot Vector로 만든다.
+3. Key = 변역할 언어로 된 Vocabulary를 구성하는 각 단어들의 One-hot Vector를 Stack
+4. Value = 변역 결과 언로 된 Vocabulary를 구성하는 각 단어들의 One-hot Vector를 Stack
+5. Query = 변역할 문장을 One-hot vector로 만들고 Stack
+6. Softmax(Query @ Key) # Value
+
+**Attention Head Class**는 아래와 같이 정의할 수 있다.
+
+```python
+class Head(nn.Module):
+    def __init__(self):
+        super().__init__()  # Initialize the superclass (nn.Module)
+        self.embedding = nn.Embedding(vocab_size, n_embd)
+        self.key = nn.Linear(n_embd, n_embd, bias=False)
+        self.query = nn.Linear(n_embd, n_embd, bias=False)
+        self.value = nn.Linear(n_embd, n_embd, bias=False)
+
+    def attention(self, x):
+        embedded_x = self.embedding(x)
+        k = self.key(embedded_x)
+        q = self.query(embedded_x)
+        v = self.value(embedded_x)
+        w = q @ k.transpose(-2, -1) * k.shape[-1]**-0.5   # Query * Keys / normalization
+        w = F.softmax(w, dim=-1)  # Do a softmax across the last dimesion
+        return embedded_x,k,q,v,w
+    
+    def forward(self, x):
+        embedded_x = self.embedding(x)
+        k = self.key(embedded_x)
+        q = self.query(embedded_x)
+        v = self.value(embedded_x)
+        w = q @ k.transpose(-2, -1) * k.shape[-1]**-0.5   # Query * Keys / normalization
+        w = F.softmax(w, dim=-1)  # Do a softmax across the last dimesion
+        out = w @ v
+        return out
+```
+
+___
+
+**Positional Embedding**은 다양한 방법으로 구현할 수 있다.
+
+1. **0 ~ N까지의 Index (위치)를 그대로 더하는 방법**
+
+    - Positional Embedding으로 인하여 더하는 값을 큰 값을 사용하면 **Positional Vector의 영향이 커져 학습이 제대로 이루어지지 않는다.**
+  
+2. Index를 더하는 대신, **각 Positional Dimension마다 계수**를 사용한다. (ex 0.1)
+
+위의 두 방법 모두 **선형적인** 방법이며, 이 방법을 이용하면 문장에서 **뒤에 위치한 단어일수록 선형적으로 크기가 증폭**된다.
+
+이를 방지하기 위해, **주기함수**를 사용한다.
+
+- **Sin, Cos** 함수를 이용한다.
+
+___
+
+**Transformer**는 `PyTorch Module`을 이용하면 구현하기 쉽다.
+
+```python
+nn.Transformer(nhead=16, num_encoder_layers=12)
+
+# Training 시에는 tgt를 이렇게 사용
+# Inference시에는 <BOS> Token이나 정답 출력의 앞부분만 넘겨주는 경우가 많음
+src = torch.rand((문장개수, 한줄의길이, 각단어의EebeddingDimension))
+tgt = torch.rand((문장개수, 한줄의길이, 각단어의EebeddingDimension))
+
+out = transformer_model(src, tgt)
+```
+
+**Multi-head** 역시 `PyTorch Module`을 통해 쉽게 구현할 수 있다.
+
+```python
+multihead_attn = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads,batch_first=False)
+
+query = torch.rand((seq_length, batch_size, embed_dim))
+key = torch.rand((seq_length, batch_size, embed_dim))
+value = torch.rand((seq_length, batch_size, embed_dim))
+
+attn_output, attn_weights = multihead_attn(query, key, value)
+```
+
+**Transformer Encoder**도 쉽게 구현할 수 있다.
+
+```python
+encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads)
+transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+
+x = torch.rand((seq_length, batch_size, embed_dim))
+encoded = transformer_encoder(x)
+```
