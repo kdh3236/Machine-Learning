@@ -212,9 +212,30 @@ attn_output, attn_weights = multihead_attn(query, key, value)
 **Transformer Encoder**도 쉽게 구현할 수 있다.
 
 ```python
-encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads)
+encoder_layer = nn.TransformerEncoderLayer(
+    d_model=embed_dim,
+    nhead=num_heads,
+    dim_feedforward=1, # Encoder Block 내의 Feadforward Net의 Hidden Dimension을 정
+    dropout=0
+)
 transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
 x = torch.rand((seq_length, batch_size, embed_dim))
 encoded = transformer_encoder(x)
 ```
+
+# Transformers for Classification: Encoder
+
+**Transformer Encoder**의 출력을 **FC Layer**를 통과하도록 하면, 결과물에 **argmax**를 사용해 Classification을 수행할 수 있다.
+
+- 이 과정에서 Standardization을 위한 **Zero Padding**, Tokenizer, Vocab 등이 요구된다.
+
+
+**Zero Padding**은 `torch.nn.utils.rnn`의 `pad_sequence()` 함수를 통해 쉽게 구현할 수 있다.
+
+```python
+# sequences 내에 있는 최대 길이 문장에 맞추어 다른 문장을 0으로 채운다.
+padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0)
+```
+
+`.state_dict()`: `torch.nn.Module`을 상속 받아 정의된 **모델 Class의 내부 구조 (Weight, Bachnorm, Dropout ...) Tensor**를 불러오는 함수
