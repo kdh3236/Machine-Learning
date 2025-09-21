@@ -84,6 +84,8 @@ $A$를 Value와 Matrix Multiplication한 결과로 나오는 Matrix가 **Context
 
 결과로 나온 Head 개수만큼의 $H'$ Matrix를 전부 **Concatenate**하고, **Output Matrix를 통해 Output을 생성**한다. 
 
+**Multi-head Attention**은 하나의 문장을 **병렬적으로 여러 관점에서 처리**할 수 있도록 하여 **모델의 표현력을 높인다.**
+
 # Transformer
 
 > **Self-Attnetion Module을 기본으로 사용하며, Encoder와 Decoder로 구성된다.**
