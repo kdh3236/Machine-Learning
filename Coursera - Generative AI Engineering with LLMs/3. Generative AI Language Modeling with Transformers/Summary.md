@@ -241,3 +241,135 @@ padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0)
 ```
 
 `.state_dict()`: `torch.nn.Module`을 상속 받아 정의된 **모델 Class의 내부 구조 (Weight, Bachnorm, Dropout ...) Tensor**를 불러오는 함수
+
+# Decoder-only Model
+
+**GPT, LLaMa** 등의 기본 모델으로, Input에 맞는 **답변을 예측하여 생성**한다.
+
+예측 및 생성 과정은 아래와 같다.
+
+1. Input token
+2. (Masked Self-Attention + Add & Norm + Feedfoward Layer + Add & Norm) x L
+3. 각 Token마다 Vocab size의 vector로 만든다. (Linear Layer 이용)
+4. Input의 마지막 Token에 대응되는 (3)의 Vector에서만 argmax를 찾아 해당 위치를 Index로 하여 단어를 찾는다.
+5. (4)의 Token이 <EOS>가 아니라면, 기존 Input Token에 (4)의 Token을 추가하여 (1) ~ (4) 과정을 반복한다.
+
+**Auto-regressive**: Masked self-Attention을 사용하여 이전 Token만을 이용해 다음 Token을 예측하는 것
+
+**Decoder-only Model**을 Training할 때 사용할 수 있는 방법
+
+1. **Fine-tuning**
+2. **RLHF**
+
+    - 사람의 피드백을 통한 강화학습
+  
+**Masked Self-Attention**
+
+- **Attention Score Matrix**의 **우측 Upper Triangle**을 **-inf**로 설정한다.
+- Softmax를 취하면 **-inf**는 0이 되기 때문이다.
+- **Causal Attention**이라고도 부른다.
+
+PyTorch를 이용하여 아래와 같이 구현할 수 있다.
+
+```python
+sz = src.shape[0]
+
+def generate_square_subsequent_mask(sz,device=DEVICE):
+    # torch.triu(torch.ones()): 우상단 삼각형이 1인 행렬 생성
+    # == 1: 1인 부분을 True, 아닌 부분을 False
+    # .transpose(0, 1): 좌하단 삼각형이 True, 그 외 false
+    mask = (torch.triu(torch.ones((sz, sz), device=device)) == 1).transpose(0, 1)
+    # 0인 부분: -inf, 1인 부분 0.0으로 설정
+    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    return mask
+```
+
+**Decoder-only model**을 **Training**하는 과정은 아래와 같다.
+
+1. Input Token에 맞추어 Decoder-only model을 통과시킨다.
+2. 결과로 나온 각 Token의 Vocab size의 logits vector를 이용하여 Cross Entropy Loss를 계산한다.
+3. (2)에서 각 Token에 대해 구한 Loss를 평균낸다.
+
+**Special Token**: 문장 시작 / 끝, Pad 등을 나타내기 위해 사용하는 Token
+
+```python
+UNK_IDX, PAD_IDX, EOS_IDX = 0, 1, 2
+special_symbols = ['<unk>', '<pad>', '<|endoftext|>' ]
+
+# special_first를 통해 Special token을 vocab에 먼저 지정한다.
+vocab = build_vocab_from_iterator(yield_tokens(train_iter), specials=special_symbols, special_first=True)
+```
+
+Padding을 한 부분은 **Model의 Output을 생성하는 과정에서 필요가 없으므로**, **Padding mask**도 필요하다.
+
+- 일반적으로 **Padding Mask**와 **ignore_index**를 둘 다 사용한다.
+
+  
+```python
+src_padding_mask = (src == PAD_IDX).transpose(0, 1)
+
+# ignore_index를 통해 PAD Token을 무시한다.
+criterion = nn.CrossEntropyLoss(ignore_index=PAD_IDX)
+```
+
+**Decoder**는 `torch.nn.TransformerEncoder()`를 **동일하게 사용하고, mask**만 넘겨주면 된다.
+
+```python
+encoder_layers = nn.TransformerEncoderLayer(d_model=embed_size, nhead=num_heads, dropout=dropout)
+transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
+
+# Forward
+output = transformer_encoder(x, src_mask)
+```
+
+# Encoder-only model
+
+**bert**이 대표적인 **Bidirectional model**
+
+- 특정 단어를 예측할 때, Decoder-only model처럼 이전 단어만 확인하는 것이 아니라, **양방향 단어를 전부 활용**하여 예측
+
+한 단어를 예측하기 위해 양방향의 단어들을 모두 활용하기 때문에, 예측 성능이 좋다.
+
+- **Training (Pre-training)** 과정에서 예측할 단어를 **[MASK] Token**으로 두고, **[MASK] Token 위치에 들어갈 단어를 예측**한다.
+- **Inference**시에는 Input에서 [MASK] Token에 대응되는 위치의 Logits에서 argmax를 사용한다.
+
+하지만, Fine-tuning의 경우에는 **[MASK] Token이 직접적으로 등장**하지 않아 문제가 생긴다.
+
+- 이 문제를 해결하기 위해 **Pre-training** 과정에서 **미리 Masked Language Modeling 규칙**을 사용한다.
+
+- **Fine-tuning과 Pre-training 간의 괴리**를 줄이기 위해, **Training에서 미리 적용**한다. 
+
+**Masked Language Modeling (MLM)**
+
+- 전체 단어의 **85%는** 그대로 놔두고, 나머지 **15%를** Mask 대상으로 정한다.
+- **15% 중, 12%는 [MASK] Token으로 대체하고, 1.5%는 Vocab내에서 임의의 Token으로 교체하고, 1.5%는 그대로 놔둔다.**
+
+**Next Sequence Prediction (NSP)**
+
+**문장간의 연속성, 관련성**을 학습하기 위한 Task
+
+두 문장이 있을 때, **첫 번째 문장 뒤에 두 번째 문장이 위치하는 것이 자연스러운지, 아닌지를 판단**한다.
+
+먼저 **문장의 시작, 끝**을 구별하기 위해 **[CLS], [SEP] Token**을 사용한다.
+
+- 두 문장은 **[CLS] ... [SEP] ... [SEP]로** 구성된다.
+
+Positional Embedding에 추가로, 각 Token이 **두 문장 중 어떤 문장에 위치하는지**를 나타내기 위해 **Segment Embedding**을 사용한다.
+
+- **첫 문장이라면 1, 두 번째 문장이라면 2** 같은 식으로 Embedding된다.
+
+**Encoder+Head Output**은 **두 번째 문장이 첫 번째 문장 뒤에 오는 것이 적합하다면 1, 적합하지 않다면 0**으로 나오게 된다.
+
+Encoder를 통과하는 과정은 아래와 같다.
+
+1. Input + Positional Embedding + Segment Embedding
+2. Self-Attention Layer (Masked 아님)
+3. **[CLS] Token 위치의 Hidden Vector**를 Head를 통과시켜 적합한지 아닌지의 결과를 얻는다.
+
+    - [CLS] Token은 문장의 시작도 나타내고, **문장 전체 정보도 담도록 구현**된다.
+    - 결과는 뒷 문장이 자연스러우면 1, 그렇지 않다면 0으로 나타난다.
+    - Training 시에는 위 **2-class logits**을 이용하여 CrossEntropyLoss를 계산한다.
+  
+**BERT**는 **MLM과 NSP** 두 가지 Task를 모두 이용하여 **Pre-training**하고, 두 개의 Loss를 합하여 하나의 Loss로 사용한다.
+
+- MLM만으로는 부족한 점이 있어 NSP까지 추가로 사용한다.
