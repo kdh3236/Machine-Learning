@@ -343,6 +343,7 @@ output = transformer_encoder(x, src_mask)
 
 - 전체 단어의 **85%는** 그대로 놔두고, 나머지 **15%를** Mask 대상으로 정한다.
 - **15% 중, 12%는 [MASK] Token으로 대체하고, 1.5%는 Vocab내에서 임의의 Token으로 교체하고, 1.5%는 그대로 놔둔다.**
+- 이때, **85%에 해당하는 Label을 [PAD]로 교체**해 **Loss 계산에 영향을 미치지 않도록 한다.**
 
 **Next Sequence Prediction (NSP)**
 
@@ -356,14 +357,16 @@ output = transformer_encoder(x, src_mask)
 
 Positional Embedding에 추가로, 각 Token이 **두 문장 중 어떤 문장에 위치하는지**를 나타내기 위해 **Segment Embedding**을 사용한다.
 
-- **첫 문장이라면 1, 두 번째 문장이라면 2** 같은 식으로 Embedding된다.
+- **첫 문장이라면 1, 두 번째 문장이라면 2** 같은 식으로 Data가 준비된다.
+- **Special Token 정보까지 추가하려면 0 ~ 2의 3개의 수를 사용한다.**
+- 이후, `nn.Embedding(2, embed_d)`를 통과하여 Embedding vector로 만든다.
 
 **Encoder+Head Output**은 **두 번째 문장이 첫 번째 문장 뒤에 오는 것이 적합하다면 1, 적합하지 않다면 0**으로 나오게 된다.
 
 Encoder를 통과하는 과정은 아래와 같다.
 
 1. Input + Positional Embedding + Segment Embedding
-2. Self-Attention Layer (Masked 아님)
+2. Self-Attention Layer (Masked Self-Attionion 아님 / Padding mask는 그대로 사용)
 3. **[CLS] Token 위치의 Hidden Vector**를 Head를 통과시켜 적합한지 아닌지의 결과를 얻는다.
 
     - [CLS] Token은 문장의 시작도 나타내고, **문장 전체 정보도 담도록 구현**된다.
@@ -373,3 +376,42 @@ Encoder를 통과하는 과정은 아래와 같다.
 **BERT**는 **MLM과 NSP** 두 가지 Task를 모두 이용하여 **Pre-training**하고, 두 개의 Loss를 합하여 하나의 Loss로 사용한다.
 
 - MLM만으로는 부족한 점이 있어 NSP까지 추가로 사용한다.
+
+## Implementation
+
+`transformers.BertTokenizer`를 통해 **Tokenization**할 수 있다.
+
+```python
+from transformers import BertTokenizer
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+# encode_plus(): 두 문장을 하나로 Encoding해준다.
+# NSP를 위한 Data 준비 / # MLM은 그냥 tokenizer()만 수행하면 된다.
+encoded_input = tokenizer.encode_plus(
+    original_text,
+    add_special_tokens=True,
+    max_length=512,
+    padding='max_length',
+    truncation=True,
+    return_tensors="pt"
+)
+
+from transformers import BertForPreTraining, BertTokenizer
+import torch
+
+# 아래와 같이 입력하면, 두 문장을 쌍으로 묶어
+# BeRT model에 바로 넣을 수 있는 Dictionary 형태로 반환한다.
+input = tokenizer(text1, text2, return_tensors="pt")
+target_is_next = torch.tensor([]) # 모델에서 Loss 계산시 사용할 NSP Target
+output = model(**input, next_sentence_label =target_is_next))
+```
+
+`nn.TrasformerEncoderLayer`를 사용해서 **Encoder를 구현**한다.
+
+```
+encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=heads, dropout=dropout,batch_first=False)
+transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+# src_key_padding_mask: padding mask만 사용한다.
+transformer_encoder_output = transformer_encoder(bert_embeddings,src_key_padding_mask=padding_mask)
+```
