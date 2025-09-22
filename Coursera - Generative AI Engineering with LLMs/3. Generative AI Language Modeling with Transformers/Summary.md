@@ -420,8 +420,8 @@ output = output.prediction_logits
 
 # mask_token_id = [MASK] Token id를 반환
 mask_positions = (input_ids[0] == tokenizer.mask_token_id)
-# output에서 MASK 위치한 부분의 argmax를 찾음
-index = torch.argmax(output[0, input_ids[0] == tokenizer.mask_token_id]).item()
+# output에서 [MASK] Token이 위치한 부분의 argmax를 찾음
+index = torch.argmax(output[0, input[0] == tokenizer.mask_token_id]).item()
 # 정수 id를 token으로 바꿔줌
 prediction = tokenizer.convert_ids_to_tokens([index])
 ```
