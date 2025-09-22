@@ -342,7 +342,10 @@ output = transformer_encoder(x, src_mask)
 **Masked Language Modeling (MLM)**
 
 - 전체 단어의 **85%는** 그대로 놔두고, 나머지 **15%를** Mask 대상으로 정한다.
-- **15% 중, 12%는 [MASK] Token으로 대체하고, 1.5%는 Vocab내에서 임의의 Token으로 교체하고, 1.5%는 그대로 놔둔다.**
+
+    - 이 과정에서 두 경우 중 하나이므로 **Bernoulli Distribution**을 주로 사용한다.
+       
+- **15% 중, 80%는 [MASK] Token으로 대체하고, 10%는 Vocab내에서 임의의 Token으로 교체하고, 10%는 그대로 놔둔다.**
 - 이때, **85%에 해당하는 Label을 [PAD]로 교체**해 **Loss 계산에 영향을 미치지 않도록 한다.**
 
 **Next Sequence Prediction (NSP)**
@@ -405,7 +408,27 @@ import torch
 input = tokenizer(text1, text2, return_tensors="pt")
 target_is_next = torch.tensor([]) # 모델에서 Loss 계산시 사용할 NSP Target
 output = model(**input, next_sentence_label =target_is_next))
+
+# NSP Ouput [Batch size, 2]
+output.seq_relationship_logits
+
+# MLM Output [Batch size, Sequence Length, Vocab size]
+input = tokenizer(text, return_tensors="pt")
+# input_ids: Text를 정수 ID로 매핑한 부분
+output = model(input_ids = input[input_ids])
+output = output.prediction_logits
+
+# mask_token_id = [MASK] Token id를 반환
+mask_positions = (input_ids[0] == tokenizer.mask_token_id)
+# output에서 MASK 위치한 부분의 argmax를 찾음
+index = torch.argmax(output[0, input_ids[0] == tokenizer.mask_token_id]).item()
+# 정수 id를 token으로 바꿔줌
+prediction = tokenizer.convert_ids_to_tokens([index])
 ```
+
+위와 같이 **Pre-trained**된 **Tokenizer**를 사용하면, `Tokenizer.get_vocab()`을 통해 **미리 학습된 Vocabulary**를 얻을 수 있다.
+
+- `len(tokenizer.vocab)`은 Vocabulary size를 return한다.
 
 `nn.TrasformerEncoderLayer`를 사용해서 **Encoder를 구현**한다.
 
