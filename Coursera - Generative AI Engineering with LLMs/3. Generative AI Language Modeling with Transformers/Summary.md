@@ -320,6 +320,9 @@ criterion = nn.CrossEntropyLoss(ignore_index=PAD_IDX)
 
 **Decoder**는 `torch.nn.TransformerEncoder()`를 **동일하게 사용하고, mask**만 넘겨주면 된다.
 
+- `torch.nn.TransformerDecoder()`도 존재하지만, 이 함수는 Encoder-Decoder 구조를 Based로 구현되어있어 Memory를 넘겨주어야 한다.
+- **Decoder-only model**에서는 **Cross attention을 사용하지 않으므로** `torch.nn.TransformerEncoder()`을 그대로 사용하고 `torch.nn.TransformerEncoder()`은 Causal Mask가 적용되지 않기 때문에, **Input에 Causal Masking을 따로 적용**하는 것이 올바른 구현이다.
+
 ```python
 encoder_layers = nn.TransformerEncoderLayer(d_model=embed_size, nhead=num_heads, dropout=dropout)
 transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
