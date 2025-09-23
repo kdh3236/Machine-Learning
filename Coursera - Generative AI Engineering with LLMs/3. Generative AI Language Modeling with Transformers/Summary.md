@@ -88,13 +88,13 @@ $A$를 Value와 Matrix Multiplication한 결과로 나오는 Matrix가 **Context
 
 # Transformer
 
+> **Self-Attnetion Module을 기본으로 사용하며, Encoder와 Decoder로 구성된다.**
+
 **Transformer**를 사용하는 이유는 다음과 같다.
 
 1. 전체 Sequence를 한 번에 확인할 수 있다.
 2. 속도가 빠르다.
 3. Contextual information을 잘 파악한다.
-
-> **Self-Attnetion Module을 기본으로 사용하며, Encoder와 Decoder로 구성된다.**
 
 먼저, **Encoder**부터 살펴보자.
 
