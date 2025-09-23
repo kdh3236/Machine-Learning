@@ -88,6 +88,12 @@ $A$를 Value와 Matrix Multiplication한 결과로 나오는 Matrix가 **Context
 
 # Transformer
 
+**Transformer**를 사용하는 이유는 다음과 같다.
+
+1. 전체 Sequence를 한 번에 확인할 수 있다.
+2. 속도가 빠르다.
+3. Contextual information을 잘 파악한다.
+
 > **Self-Attnetion Module을 기본으로 사용하며, Encoder와 Decoder로 구성된다.**
 
 먼저, **Encoder**부터 살펴보자.
@@ -437,4 +443,40 @@ encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=heads, dropout
 transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
 # src_key_padding_mask: padding mask만 사용한다.
 transformer_encoder_output = transformer_encoder(bert_embeddings,src_key_padding_mask=padding_mask)
+```
+
+# Implementation of traslator using transformer
+
+`torch.nn` library를 이용해서 Transformer를 쉽게 구현할 수 있다.
+
+- Src와 Tgt 모두 Embedding되어야 한다.
+
+```python
+from torch.nn import Transformer
+
+# encoder, decoder block의 개수
+# haed 수
+# Feedforward dimension 등을 정의한다.
+transformer = Transformer(
+      d_model=emb_size,
+      nhead=nhead,
+      num_encoder_layers=num_encoder_layers,
+      num_decoder_layers=num_decoder_layers,
+      dim_feedforward=dim_feedforward,
+      dropout=dropout
+)
+
+# encoder와 decoder는 위에서 정의한 trasnformer 내부의 함수로 구현할 수 있다.
+
+encode = transformer.encoder(self.positional_encoding(self.src_tok_emb(src)), src_mask)
+decode = transformer.decoder(self.positional_encoding(self.tgt_tok_emb(tgt)), memory, tgt_mask) # Memory: Cross-Attention에서 Key, Value로 사용될 Encoder의 출력값
+
+# 출력 생성
+outs = self.transformer(src_emb, tgt_emb, src_mask, tgt_mask, None, src_padding_mask, tgt_padding_mask, memory_key_padding_mask)
+# Encoder 출력
+memory = encode(src, src_mask)
+# Decoder 출력
+# Inference 시에는 input은 <BOS>부터 시작해 이전 Decoder의 생성값을 Cat한다.
+# Training 시에는 Teacher Forcing을 통해 전체 Sequence를 한번에 입력  
+output = decode(input, memory, tgt_mask) 
 ```
