@@ -205,7 +205,21 @@ LLM을 Fine-tuning하는 방법에는 **세가지 방법**이 있다.
 
 - 성능과 비용은 Trade-off이고, 상황에 맞추어 선택해야 한다.
 
+**Classifier**만 Unfreeze해서 Training하는 방법은 아래와 같이 구현할 수 있다.
+
+```python
+for param in model.parameters():
+    param.requires_grad = False
+
+dim=model.classifier.in_features  # Load한 model 내부에 Classifier만 가져옴
+model_fine2.classifier = nn.Linear(dim, 2)
+```
+
+하지만 **PyTorch**만을 이용하면, 모델 구성 + 데이터 전처리 + Training 과정을 모두 코딩해야 한다.
+
 **HuggingFace**를 이용하면 Fine-tuning이 비교적 편리하다.
+
+- 데이터 처리, 모델 Load, Training 과정 모두 라이브러리 함수를 사용할 수 있다.
 
 먼저 `datasets` package를 통해 **dataset을 load하고 수정**할 수 있다.
 
@@ -246,3 +260,67 @@ model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", nu
 - Training 작업을 간결하고 자동화
 - 에러가 더 적도록 보장
 
+```python
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
+
+# 모델이 학습할 데이터 형식 지정
+instruction_template = "### Human:" # 사용자의 질문 시작 Token
+response_template = "### Assistant:" # 정답 부분 시작 Token
+
+# 데이터 형식에 맞추어 Tokenization
+collator = DataCollatorForCompletionOnlyLM(instruction_template=instruction_template, response_template=response_template, tokenizer=tokenizer, mlm=False)
+
+# dataset_text_field와 data_collator 등을 통해 추가적인 기능을 제공하는 Trainer
+trainer = SFTTrainer(
+    model,
+    args=training_args,
+    train_dataset=dataset,
+    dataset_text_field="text", # dataset의 "text" key에 대응되는 부분만 사용
+    data_collator=collator, # collator 함수 이용
+)
+```
+
+# Parameter Efficient Fine Tuning (PEFT)
+
+> **업데이트되는 Parameter의 개수를 줄여 비용과 시간을 아낄 수 있도록 하는 방법**
+
+세부적으로 세 가지 방법으로 나뉜다.
+
+## 1. Selective Fine-Tuning
+
+> **Network의 일부 Sub-layers만 Training 하는 방법**
+
+- 그러나 Pre-trained Transformer의 경우 **Parameter의 개수가 굉장히 많기 때문에 효과적이지 않다.**
+
+## 2. Additive Fine-Tuning
+
+> **기존 Model의 Parameter는 냅두고, 추가적인 Layer나 Adapter를 추가하고 추가된 부분만 Training하는 방법**
+
+- Transformer의 경우에는 Encoder에서 Feed forward 다음에 Adapter를 추가한다.
+- 이때, Adapter는 Dimension을 줄이는 역할을 한다.
+- Transformer는 **기존 Model의 Parameter를 통해 기본적인 언어에 대한 이해는 유지하면서, Adapter를 통해 Task에 대한 이해를 추가**한다.
+
+## 3. Reparameterization Fine-Tuning
+
+> **기존 Model에 추가적으로 Parameter만 추가하고 추가된 Parameter만 Training하는 방법**
+
+두 가지 방법으로 나눌 수 있다.
+
+### Soft prompting
+
+Embedding된 **Prompt 앞에 모델이 학습할 수 있는 Parameter vector를 추가하고, 이를 Training**한다.
+
+### LoRA: Low-Rank Adaptation 
+
+> **Model에 기존 Weight에 기존 Weight보다 낮은 차원을 갖는 Parameter 집합을 추가하고, 추가된 Parameter만 Training하는 방법**
+
+기본적인 아이디어는 다음과 같다.
+
+- 대규모 사전 학습 모델을 특정 작업에 맞게 미세 조정할 때, **모델의 가중치 행렬이 변하는 양(ΔW)은 사실상 복잡한 고차원 행렬이 아니라, 소수의 중요한 변화 방향만을 담고 있는 저차원 행렬**로 표현될 수 있다."
+
+- 수학적으로는 **고차원 행렬의 저랭크 근사**로 생각할 수 있다.
+
+LoRA에서 발전된 **두 가지 모델**이 있다.
+
+- **QLoRA**: Quantization이 추가된 방법
+- **DLoRA**: 추가되는 Parameter matrix의 Rank가 Input에 따라 변하는 방법 
