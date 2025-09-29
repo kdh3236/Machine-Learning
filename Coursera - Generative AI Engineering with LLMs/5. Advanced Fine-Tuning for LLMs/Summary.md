@@ -313,15 +313,184 @@ LLMs에서는 강화학습과 다르게 **Model Parameter를 이용하여 샘플
 
 - **Input Query를 입력**으로 받고, **사용자의 피드백**을 제공한다.
 
-Query만 모아놓은 Rollout을 $X$, 한 Query에 대한 여러 응답을 모아놓은 Rollout을 $Y_i$라고 하자.
+Query만 모아놓은 Rollout을 $X$, 각 Query를 $X_i$라고 하자.
+
+한 Query에 대한 응답을 $Y_i$라고 하고, n번째 Query에 대한 Response는 $Y_{n, i}라고 하자.
 
 이제 **Expected Reward를 공식화**할 수 있다.
 
+- $E[r]$ ~ $\frac{N}{1}\sum_{n=1}{N}\sum_{k=1}{N}\frac{1}{K}r)(X_n, Y_{n, k})$ = $E_{X ~ D}E_{D_X}[r(X, Y)]$
+
+- $N$: Query의 개수 / $n$: Individual query / $k$: Individual response
+
+- $E_{X~D}$: Expectation over data distribution D / $E_{D_X}$: Expectation over model's response distribution for input X
+
+**Monte-carlo method**에 의해 **Reward에 대한 Expectation을** 아래와 같이 정의할 수 있다.
+
+- $E[r_Y]=E_{D_X}[r(X, Y)]=\sum_Yr(X, Y)p(Y|X)$
+
+RLHF를 적용하는 과정은 다음과 같다.
+
+1. Query를 Model에 넣어 Response를 생성한다.
+
+    - 이때, Query $X$에 대응되는 Response $Y$를 Rollout한다.
+    - Query + Response 형태
+    - 여러개의 Response가 생성될 수 있다.
+         
+2. Query + Response를 Reward model에 넣어 Reward value를 얻는다.
+
+3. Reward를 기반으로 Parameter $\theta$를 업데이트한다.
+
+   
 # Proximal Policy Optimization (PPO)
 
+> **Policy gradient objective function을 Maximize하는 방법 중 하나**
+
+**Policy gradient method**는 Policy $\pi_\theta$가 최대가 되도록 하는 $\theta$를 찾는 방법이다.
+
+- 이를 위한 여러 방법으로 **PPO**, **Cliped surrogate objective** 등이 있다.
+
+### Cliped surrogate objective
+
+Policy를 너무 급격하게 바꾸면 학습이 망가지기 때문에 **너무 큰 변화는 잘라내는 역할**을 한다.
+
+### PPO Objective function
+
+PPO Objective function을 다루기 전에 **KL Divergence penalty**부터 알아야 한다.
+
+- **KL Divergence penalty**: Update된 Policy가 기존 Policy에서 너무 멀어지지 않도록 Penalty를 주는 term이다.
+
+추가로, **Policy $\pi_\theta$에서 Sampling된 결과는 Reward $r(X, Y)$를 최대화**해야 한다.
+ 
+결과적으로 **Objective function**은 아래와 같이 구성된다.
+
+- $J(θ)=E[r(X,Y)−βKL(π_θ​(⋅∣X)∥π_{prev}​(⋅∣X))$
+- $β$는 Hyperparameter이다.
+
+**KL Divergence penalty**를 제외하고 Policy 부분만 자세히 나타내면 다음과 같다.
+
+- $E[r_y|\theta]=E_{Y \sim\mathcal \pi_\theta(Y|X)}[r(X, Y)]$
+
+  - 한 Query에 대한 기댓값
+
+- $E_{X \sim\mathcal D}[E_{Y \sim\mathcal \pi_\theta(Y|X)}[r(X, Y)]$
+
+  - 전체 Query에 대한 기댓값
+
+- $\pi_*(X, Y)=argmax_{\pi}E_{X \sim\mathcal D}[E_{Y \sim\mathcal \pi_\theta(Y|X)}[r(X, Y)]$ 
+
+$E[r_y|\theta]$의 Joint expectation을 Maximizing 하는 대신, **Log-derivative trick**을 사용할 수 있다.
+
+### Log-derivative trick
+
+**Analytical Expectation**으로 변환하여 $\theta$에 대해 **직접적인 최적화**가 가능하도록 한다.
+
+- $E[r_y|\theta]=\sum_Yr(X, Y)\pi_\theta(Y|X)$
+
+- $\nabla E[r_y|\theta]=\sum_Yr(X, Y)\nabla_\theta\pi_\theta(Y|X)$
+
+- $\nabla_\theta\pi_\theta(Y|X) = \nabla_\theta log(\pi_\theta(Y|X))\pi_\theta(Y|X)$
+
+
+  - $∇logf=\frac{f}{∇f}$를 이용한다. 
+
+- $E_{X \sim\mathcal D}[\nabla E[r_Y|\theta]] = \nabla_\theta E_{X \sim\mathcal D}[E[r_Y|\theta]]$
+
+### Tips for training
+
+1. Human feedback을 통해 model을 평가
+
+2. Moderate $β$에서부터 시작
+
+3. Temperature을 점점 증가시킴
 
 ## Implementation of PPO with HuggingFace
 
+두 가지 모델의 각 응답을 비교하가 위해서 Model 두 개를 Load한다.
+
 ```python
-from trl import PPOConfig, AutoModelCausalLMWithValueHead
+from trl import PPOConfig, AutoModelCausalLMWithValueHead, PPOTrainer
+
+config = PPOConfig(
+    model_name="lvwerra/gpt2-imdb",
+    learning_rate=1.41e-5
+)
+
+model_1 = AutoModelForCausalLMWithValueHaed.from_pretrained(config.model_name)
+model_2 = AutoModelForCausalLMWithValueHaed.from_pretrained(config.model_name)
+```
+
+`LengthSampler`를 이용하면 **Input을 범위 내의 임이의 길이로 잘라주어 일반화 능력이 향상**된다.
+
+```python
+input_min_text_length, input_max_text_length = 2, 8
+
+# [2, 8]의 Uniform Distriburtion에서 Sampling 한 값을 Input size로 정한다.
+# 정해진 Input size보다 짧으면 Padding, 길면 Truncate
+input_size = LengthSampler(input_min_text_length, input_max_text_length)
+
+def tokenize(sample):
+        # [: input_size()]를 통해 짤라내도록 한다.
+        sample["input_ids"] = tokenizer.encode(sample["review"])[: input_size()]
+        sample["query"] = tokenizer.decode(sample["input_ids"])
+        return sample
+```
+
+이후, `Collator function`을 정의해 Batch로 반환할 수 있도록 한다.
+
+이제 `PPOTrainer`를 생성한다.
+
+- Reward function으로는 Huggingface `pipeline`을 이용하여 **Output에서 'score' key를 이용**한다.
+- 높은 Score는 모델에 대한 높은 신뢰도를 의미한다.
+
+```python
+ppo_trainer = PPOTrainer(
+            config,
+            model,
+            tokenizer,
+            dataset-dataset,
+            data_collator=collator
+)
+```
+
+이후, Output을 생성하기 위해 **Argument**를 설정한다.
+
+```python
+generation_kwargs = {
+    "min_length": -1,
+    "top_k": 0.0,
+    "top_p": 1.0,
+    "do_sample": True,
+    "pad_token_id": 50256,
+}
+
+# Response 생성
+response = ppo_trainer.generate(query, **generation_kwargs)
+```
+
+Output에서 사용자가 원하는 결과만을 뽑아서 `Reward`로 넘겨줄 수 있다.
+
+- 이 예시에서는 POSITIVE인 부분만 뽑아서 모델에 넘겨준다.
+
+```python
+positive_scores = [
+    item["score"]
+    for output in pipe_outputs
+    for item in output
+    if item["label"] == "POSITIVE"
+]
+rewards = [torch.tensor(score) for score in positive_scores]
+```
+
+Query, response, reward를 사용하여 모델 Parameter를 재조정한다.
+
+```python
+# stats에는 Training에 대한 정보가 담겨 있다.
+stats = ppo_trainer.step(query_tensors, response_tensors, rewards)
+
+# Training log
+ppo_trainer.log_stats(stats, batch, rewards)
+
+stat['ppo/loss/total'] # Loss
+stat['ppo/mean_scores'] # Mean score
 ```
