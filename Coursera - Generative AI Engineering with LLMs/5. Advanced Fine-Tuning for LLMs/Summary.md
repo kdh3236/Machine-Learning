@@ -313,6 +313,8 @@ LLMs에서는 강화학습과 다르게 **Model Parameter를 이용하여 샘플
 
 - **Input Query를 입력**으로 받고, **사용자의 피드백**을 제공한다.
 
+- 보통, **Encoder를 사용한다.**
+
 Query만 모아놓은 Rollout을 $X$, 각 Query를 $X_i$라고 하자.
 
 한 Query에 대한 응답을 $Y_i$라고 하고, n번째 Query에 대한 Response는 $Y_{n, i}라고 하자.
@@ -468,7 +470,7 @@ generation_kwargs = {
 response = ppo_trainer.generate(query, **generation_kwargs)
 ```
 
-Output에서 사용자가 원하는 결과만을 뽑아서 `Reward`로 넘겨줄 수 있다.
+Output에서 **사용자가 원하는 결과**만을 뽑아서 `Reward`로 넘겨줄 수 있다.
 
 - 이 예시에서는 POSITIVE인 부분만 뽑아서 모델에 넘겨준다.
 
@@ -482,7 +484,7 @@ positive_scores = [
 rewards = [torch.tensor(score) for score in positive_scores]
 ```
 
-Query, response, reward를 사용하여 모델 Parameter를 재조정한다.
+Query, response, reward를 사용하여 **모델 Parameter를 재조정**한다.
 
 ```python
 # stats에는 Training에 대한 정보가 담겨 있다.
@@ -493,4 +495,165 @@ ppo_trainer.log_stats(stats, batch, rewards)
 
 stat['ppo/loss/total'] # Loss
 stat['ppo/mean_scores'] # Mean score
+```
+
+# DPO (Direct Preference Optimization)
+
+**DPO**는 **사용자에게 여러 Output을 주고 어떤 것을 선호하는지 선택**하도록 한다.
+
+**PPO**가 Reward를 통해 **Model에서 Parameter를 조정하라는 Signal을** 주는 대신에, **DPO**는 직접 **Model의 Parameter를 조정**한다.  
+
+- **PPO**를 **Reward-based methods**라고 하고, **DPO**를 **Reward-free methods**라고 한다.
+
+**DPO**는 3가지 구성요소를 갖는다.
+
+- **Reward function**
+
+  - **Encoder**를 이용한다.
+    
+- **Target decoder**
+
+  - $\pi_\theta$로 표현된다.
+  - **업데이트 대상**이 된다.
+    
+- **Reference model**
+
+  - $\pi_{ref}$로 표현된다.
+  - 미리 **SFT**를 통해 학습되고 고정되어 있다.
+  - **Reference model에서 Target model이 크게 벗어나지 않도록 한다.**
+ 
+**DPO**를 이용하여 Fine-tuning하기 위해서, **Positive와 Negative로 나누어진 데이터**를 수집해야 한다.
+ 
+### Objective Function
+
+- $\pi_{*} (X, Y)$ = $argmax_{\pi} {E_{Y \sim\mathcal \pi_\theta(Y|X)}[r(X, Y)]}$ - $\beta \cdot D_{KL}[\pi_\theta (Y|X) || \pi_{ref}(Y|X)]]$
+
+**Opjective function**을 **Closed-form으로 만들고, Optimal solution**을 구하기 위해 간략화할 수 있다.
+
+- $\pi_{*} (Y|X)$ = $argmax_{\pi_\theta} E_{X \sim\mathcal D, Y \sim\mathcal \pi_\theta(Y|X)}(ln(\frac{\pi_{ref}(Y|X)}{\pi_\theta(Y|X)}) - ln(Z(X)))$
+
+- $\pi_{*} (Y|X)$ = $argmax_{\pi_\theta} E_{X\sim\mathcal D, Y \sim\mathcal \pi_\theta(Y|X)}(ln(\frac{\pi_{ref}(Y|X)}{\pi_\theta(Y|X)}))$
+
+결국 **Optimal solution**을 추가하는 것은 $\theta_\pi$와 $\theta_r$의 **KL Divergence**를 구하는 것과 동일하다.
+
+- 모델은 **DPO**를 통해 $\theta_\pi$와 $\theta_r$의 차이를 줄인다.
+
+- **PPO**에서 Parameter 업데이트와 RL 단계가 나누어져 있던 것을 **하나의 Objective function으로 쉽게 표현할 수 있다.**
+
+우리는 임의의 함수를 만들어 **Score**로 사용한다.
+
+- 각 카테고리의 Score를 모두 더하면 1이 나와야 한다.
+
+- 때문에 Policy에 맞는 **Score function은 $Z(x)$로 정규화**되어야 한다.
+
+- $Z(x)$는 모든 Score의 합이고, 각 Score를 $Z(x)$로 나눈 값을 사용하면 된다.
+
+### Loss
+
+**Bradley-Terry**를 이용한다.
+
+Loss = $-E_{(X, Y_W, Y_L) \sim\mathcal D} ln(\sigma(r(X, Y_W| \phi) - r(X, Y_L | \phi)))$
+
+최종적으로 $-\sigma βln((r(X, Y_W| \phi)) - βln(r(X, Y_L | \phi)))$를 Loss로 사용한다.
+
+- $r(X, Y_W)$ = $βln(\frac{\pi_{ref}(Y_W|X)}{\pi_\theta(Y_W|X)}) + βln(Z(X))$
+- $r(X, Y_L)$ = $βln(\frac{\pi_{ref}(Y_L|X)}{\pi_\theta(Y_L|X)}) + βln(Z(X))$
+- $Y_W$: 해당 답변을 선호하는 경우, $Y_L$: 해당 답변을 선호하지 않는 경우
+
+결국, **선호하는 답변과 선호하지 않는 답변에 대한 Score의 차이가 커지도록 한다.**
+
+## Implementation of DPO with HuggingFace
+
+먼저, 데이터를 **Positive와 Negative로 나누기 위해 Processing한다.**
+
+```python
+# Define a function to process the data
+def process(row):
+    # delete unwanted columns
+    del row["prompt_id"]
+    del row["messages"]
+    del row["score_chosen"]
+    del row["score_rejected"]
+    # retrieve the actual response text
+    row["chosen"] = row["chosen"][-1]["content"]
+    row["rejected"] = row["rejected"][-1]["content"]
+
+    return row
+```
+
+LoRA Config를 정의한다.
+
+```python
+peft_config = LoraConfig(
+        # The rank of the low-rank adaptation weights
+        r=4,
+        # The target modules to apply the low-rank adaptation to
+        target_modules=['c_proj','c_attn'],
+        # The task type for the low-rank adaptation
+        task_type="CAUSAL_LM",
+        # The scaling factor for the low-rank adaptation weights
+        lora_alpha=8,
+        # The dropout probability for the low-rank adaptation weights
+        lora_dropout=0.1,
+        # The bias mode for the low-rank adaptation
+        bias="none",
+)
+```
+
+`DPOConfig`를 설정하고 `DPOTrainer`를 지정한다.
+
+```python
+# DPO configuration
+from peft import get_peft_model
+training_args = DPOConfig(
+    # beta: Hyperparameter, PPO의 Temperature와 비슷하게 동작한다. 
+    beta=0.1,
+    output_dir="dpo",
+    num_train_epochs=5,
+    per_device_train_batch_size=1,
+    per_device_eval_batch_size=1,
+    remove_unused_columns=False,
+    logging_steps=10,
+    gradient_accumulation_steps=1,
+    learning_rate=1e-4,
+    evaluation_strategy="epoch",
+    warmup_steps=2,
+    fp16=False,
+    save_steps=500,
+    #save_total_limit=2,
+    report_to='none'
+)
+
+trainer = DPOTrainer(
+        model=model,
+        # None이면 지금 모델과 동일한 Model의 가중치 초기화된 복사본을 만들어 사용
+        ref_model=None,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        tokenizer=tokenizer,
+        peft_config=peft_config,
+        #max_prompt_length=512,
+        max_length=512,
+)
+```
+
+Fine-Tuning한 이후, Output을 생성하는 방법은 아래와 같다.
+
+```python
+generation_config = GenerationConfig(
+        # Use sampling to generate diverse text
+        do_sample=True,
+        # Top-k sampling parameter
+        top_k=1,
+        # Temperature parameter to control the randomness of the generated text
+        temperature=0.1,
+        # Maximum number of new tokens to generate
+        max_new_tokens=25,
+        # Use the end-of-sequence token as the padding token
+        pad_token_id=tokenizer.eos_token_id
+    )
+
+outputs = dpo_model.generate(**inputs, generation_config=generation_config)
+inputs = tokenizer(PROMPT, return_tensors='pt')
 ```
