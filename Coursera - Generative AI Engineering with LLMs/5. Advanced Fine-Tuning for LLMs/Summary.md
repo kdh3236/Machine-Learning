@@ -251,3 +251,77 @@ trainer = RewardTrainer(
 
 trainer.train()
 ```
+
+# LLMs as Distributions
+
+먼저, Input에 대해 특정 Output이 나올 확률을 표현할 수 있다.
+
+- $P(W_{t+1}|W_t ... W_1)$
+
+- Output에 대해 **Softmax**를 적용한다.
+
+이후, Input($W_t ... W_1$)에 대해 **가능한 모든 Output(Vocab)에 대한 각각의 Softmax 확률을 계산**하고 Vocab에 대한 **각 단어에 대한 막대 그래프**로 나타내면 **Distribution**의 형태를 나타난다.
+
+- 이 떄의 Distribution은 **Categorical distribution**이다.
+
+모델의 Output을 위 Distribution에서의 Sampling으로 나타낼 수 있다.
+
+## Temperature
+
+`Temperature`를 $t$라고 하면 아래와 같이 변형된 Softmax 식을 사용한다.
+
+- $\frac{exp(\frac{t}{s_i})}{\sum_iexp(\frac{t}{s_i})}$
+
+그 결과, **표현되는 Distribution이 Normalization 된다.** 
+
+- $t$의 값이 크면 클수록 **Randomness가 강해진다.**
+
+
+## Top-K Sampling
+
+먼저 적절한 `Temperature`을 이용하여 확률(Softmax) 계산을 한다.
+
+이후, **확률이 가장 높은 K만 선택**한다.
+
+마지막으로, **선택한 K의 확률 합이 1이 되도록 Normalization**한다.
+
+# LLM에서의 Policy
+
+> **생성 프로세스를 안내하여 모델이 다양한 텍스트 생성 경로를 탐색하고 더욱 다양하고 상황에 적합한 출력을 생성하도록 하는 것**
+
+- 강화학습에서의 Policy와 어느 정도 비슷하다.
+
+**Randomness**를 활용하여 모델이 더 창의적으로 답할 수 있도록 한다.
+
+- **Temperature, Top-K** 등에 의해 Randomness가 부여된다.
+
+LLMs에서는 강화학습과 다르게 **Model Parameter를 이용하여 샘플링**한다고 생각하면 된다.
+- Tearch forcing만으로 Policy가 정의되고 이후 RLHF 등을 통해 Parameter를 조절한다.
+- Policy = $\pi_\theta(y_t | x, y_{<t})$
+  
+### Rollouts
+
+모델이 Policy에 따라 생각한 각 응답을 `Rollout`이라고 하며, 각 응답의 집합을 `Rollouts`라고 한다.
+
+라이브러리에서는 Rollouts 저장 형식이 다르다.
+
+- Response만 저장될 수도 있고 Query+Response가 저장될 수도 있다.
+
+# Reinforcement Learning from Human Feedback (RLHF)
+
+먼저 $r(X, Y)$로 표현되는 **Reward function**에 대해 살펴보자.
+
+- **Input Query를 입력**으로 받고, **사용자의 피드백**을 제공한다.
+
+Query만 모아놓은 Rollout을 $X$, 한 Query에 대한 여러 응답을 모아놓은 Rollout을 $Y_i$라고 하자.
+
+이제 **Expected Reward를 공식화**할 수 있다.
+
+# Proximal Policy Optimization (PPO)
+
+
+## Implementation of PPO with HuggingFace
+
+```python
+from trl import PPOConfig, AutoModelCausalLMWithValueHead
+```
