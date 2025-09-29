@@ -526,6 +526,14 @@ stat['ppo/mean_scores'] # Mean score
  
 ### Objective Function
 
+일반적인 **Logistic regression function을 사용자의 피드백에 맞춰 임의로 변경**할 수 있다.
+
+- Score가 일반적이지 않은 모양의 Distribution을 가지게 된다.
+- 이 경우 따로 **정규화**를 해주어야 한다.
+- 때문에 Policy에 맞는 **Score function은 $Z(x)$로 정규화**되어야 한다.
+- $Z(X)$를 **Partition function (정규화 상수)라고** 한다.
+- $Z(x)$는 모든 Score의 합이고, 각 Score를 $Z(x)$로 나눈 값을 사용하면 된다.
+
 - $\pi_{*} (X, Y)$ = $argmax_{\pi} {E_{Y \sim\mathcal \pi_\theta(Y|X)}[r(X, Y)]}$ - $\beta \cdot D_{KL}[\pi_\theta (Y|X) || \pi_{ref}(Y|X)]]$
 
 **Opjective function**을 **Closed-form으로 만들고, Optimal solution**을 구하기 위해 간략화할 수 있다.
@@ -540,13 +548,6 @@ stat['ppo/mean_scores'] # Mean score
 
 - **PPO**에서 Parameter 업데이트와 RL 단계가 나누어져 있던 것을 **하나의 Objective function으로 쉽게 표현할 수 있다.**
 
-우리는 임의의 함수를 만들어 **Score**로 사용한다.
-
-- 각 카테고리의 Score를 모두 더하면 1이 나와야 한다.
-
-- 때문에 Policy에 맞는 **Score function은 $Z(x)$로 정규화**되어야 한다.
-
-- $Z(x)$는 모든 Score의 합이고, 각 Score를 $Z(x)$로 나눈 값을 사용하면 된다.
 
 ### Loss
 
@@ -554,7 +555,7 @@ stat['ppo/mean_scores'] # Mean score
 
 Loss = $-E_{(X, Y_W, Y_L) \sim\mathcal D} ln(\sigma(r(X, Y_W| \phi) - r(X, Y_L | \phi)))$
 
-최종적으로 $-\sigma βln((r(X, Y_W| \phi)) - βln(r(X, Y_L | \phi)))$를 Loss로 사용한다.
+**DPO에서는 Z(X 정규화 항을 무시하고** $-\sigma βln((r(X, Y_W| \phi)) - βln(r(X, Y_L | \phi)))$를 Loss로 사용한다.
 
 - $r(X, Y_W)$ = $βln(\frac{\pi_{ref}(Y_W|X)}{\pi_\theta(Y_W|X)}) + βln(Z(X))$
 - $r(X, Y_L)$ = $βln(\frac{\pi_{ref}(Y_L|X)}{\pi_\theta(Y_L|X)}) + βln(Z(X))$
