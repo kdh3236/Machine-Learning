@@ -197,6 +197,16 @@ LangChain은 여러 **Model**을 이용할 수 있다.
 
 `StringPromptTemplate`, `ChatPromptTemplate`, `MessagesPlaceholderTemplate`, `FewShotPromptTemplate` 등이 있다.
 
+```python
+# Model이 실제 입력받는 부분의 형식을 지정한다.
+prompt = PromptTemplate.from_template(
+    "Summarize this:\n{content}\n\nQuestion: {question}"
+)
+
+# Content는 RAG를 통해, Question은 User에게 받고 위 형식의 Prompt로 만든 후에 Response를 생성하도록 한다.
+chain.invoke({"content": "...", "question": "..."})
+```
+
 ### Example selector
 
 `Example selector`를 통해 **적절한 Example**을 LLM에 주는 것이 주어진 Task를 정확히 수행하는 데 중요하다.
