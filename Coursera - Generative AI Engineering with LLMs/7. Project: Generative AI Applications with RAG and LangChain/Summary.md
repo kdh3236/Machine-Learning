@@ -27,7 +27,7 @@ Load 속도를 높이기 위해서 **병렬 처리**할 수 있다.
 
 - **Context window**에 의해 제한된다.
 
-# LangChain Text Splittter
+# LangChain Text Splitter
 
 > **Load한 파일을 CHunk 단위로 나누는 것을 도와주는 모듈**
 
