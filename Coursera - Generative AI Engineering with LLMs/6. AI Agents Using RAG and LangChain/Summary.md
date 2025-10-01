@@ -182,11 +182,14 @@ LangChain은 여러 **Model**을 이용할 수 있다.
 
 - IBM, OpenAI, Meta 등의 모델을 사용할 수 있다.
 
+- `ModelInference()`를 이용하여 Model을 지정하고, `.generate()`를 통해 Response를 생성한다.
+
 ### Chat Message
 
 **Chat Message**는 `role`과 `content` 두 부분으로 나뉜다.
 
-- `role`은 **System message와 Human message**로 나뉘고, `content`는 각 Message의 내용을 의미한다.
+- `role`은 **System message와 Human message** 등으로 나뉘고, `content`는 각 Message의 내용을 의미한다.
+- `HumanMessage`, `SystemMessage`, `AIMessage`을 이용한다.
 
 ### Prompt templates
 
@@ -198,7 +201,7 @@ LangChain은 여러 **Model**을 이용할 수 있다.
 
 `Example selector`를 통해 **적절한 Example**을 LLM에 주는 것이 주어진 Task를 정확히 수행하는 데 중요하다.
 
-- `NGramOverlapExampleSelector`를 이용할 수 있다.
+- `NGramOverlapExampleSelector`, `FewShotPromptTemplate` 등이 있다.
 
 ### Output parsers
 
@@ -225,6 +228,8 @@ LangChain을 이용하여 **RAG**도 구현할 수 있다.
 #### Text splitter
 
 `CharacterTextSplitter()`를 이용하면 파일을 구분자를 기준으로 여러 Chunk로 나눈다.
+
+`RecursiveCharacterTextSplitter()`를 이용하여 여러 구분자를 이용하여 Chunk로 나눌 수 있다.
 
 #### Vector database
 
