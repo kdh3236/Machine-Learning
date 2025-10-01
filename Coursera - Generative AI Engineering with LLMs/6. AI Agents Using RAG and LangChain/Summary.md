@@ -207,11 +207,9 @@ LangChain은 여러 **Model**을 이용할 수 있다.
 
 Response를 사용자가 원하는 형식으로 생성할 수 있도록 해준다.
 
-- Response`를 `JSON`, `XML`, `CSV` 등으로 반환할 수 있도록 해준다.
+- Response를 `JSON`, `XML`, `CSV` 등으로 반환할 수 있도록 해준다.
 
 - `CommaSeparetedListOutputParser()` 등을 이용할 수 있다.
-
-___
 
 LangChain을 이용하여 **RAG**도 구현할 수 있다.
 
