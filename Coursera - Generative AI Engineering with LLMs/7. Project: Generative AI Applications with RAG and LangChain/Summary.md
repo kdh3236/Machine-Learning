@@ -52,4 +52,47 @@ texts = text_splitter.split_text(text)
 texts = text_splitter.create_documents([documents], metadatas=[])
 ```
 
+# Embedding model
 
+**Document**를 **Chunk**로 나눈 이후, Vector DB에 넣기 위해 Embedding해야 한다.
+
+- 실습에선 `WatsonxEmbeddings()`를 이용하여 Embedding model을 호출한다.
+
+```python
+from ibm_watsonx_ai.metanames import EmbedTextParamsMetaNames
+from langchain_ibm import WatsonxEmbeddings
+
+embed_params = {
+    # Input이 길 경우 앞 3개 Token만 사용
+    EmbedTextParamsMetaNames.TRUNCATE_INPUT_TOKENS: 3,
+    # 원본 Text도 같이 반환
+    EmbedTextParamsMetaNames.RETURN_OPTIONS: {"input_text": True},
+}
+
+watsonx_embedding = WatsonxEmbeddings(
+    model_id="ibm/slate-125m-english-rtrvr",
+    url="https://us-south.ml.cloud.ibm.com",
+    project_id="skills-network",
+    params=embed_params,
+)
+
+# Chunk로 나눈 Document를 Embedding
+doc_result = watsonx_embedding.embed_documents(chunks)
+
+# Query 역시 Embedding할 수 있다.
+query_result = watsonx_embedding.embed_query(query)
+```
+
+`HuggingFaceEmbeddings` Embedding model을 사용할 수 있다.
+
+```python
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
+huggingface_embedding = HuggingFaceEmbeddings(model_name=model_name)
+
+query_result = huggingface_embedding.embed_query(query)
+
+doc_result = huggingface_embedding.embed_documents(chunks)
+```
+
+이후, **비슷한 Vector Embedding을 갖는 Document끼리 Clustering**을 해야 한다.
