@@ -138,30 +138,6 @@ vectordb.update_document(
 vectordb._collection.delete(ids=['215'])
 ```
 
-이제, LLM 모델을 이용하여 RAG를 참고하여 Query에 대해 답하도록 할 수 있다.
-
-```python
-from langchain_ibm import WatsonxLLM
-from langchain.chains import RetrievalQA
-
-query = "What this paper is talking about??"
-watsonx_llm = WatsonxLLM(
-    model_id='ibm/granite-3-2-8b-instruct',
-    url="https://us-south.ml.cloud.ibm.com",
-    project_id='skills-network',
-    params={"max_new_tokens": 256},
-)
-
-qa = RetrievalQA.from_chain_type(
-    llm=watsonx_llm, 
-    chain_type="stuff", 
-    retriever=retriever, 
-    return_source_documents=False
-)
-response = qa.invoke(query)
-print(f"Response: {response}")
-```
-
 # Vector Store-Based Retriever
 
 Vector DB에서 유사한 Vector를 찾도록 하는 다른 방법이 있다.
@@ -277,4 +253,30 @@ retriever = ParentDocumentRetriever(
     child_splitter=child_splitter,
     parent_splitter=parent_splitter,
 )
+```
+
+# Build QA Bot using LLM and RAG
+
+이제, LLM 모델을 이용하여 RAG를 참고하여 Query에 대해 답하도록 할 수 있다.
+
+```python
+from langchain_ibm import WatsonxLLM
+from langchain.chains import RetrievalQA
+
+query = "What this paper is talking about??"
+watsonx_llm = WatsonxLLM(
+    model_id='ibm/granite-3-2-8b-instruct',
+    url="https://us-south.ml.cloud.ibm.com",
+    project_id='skills-network',
+    params={"max_new_tokens": 256},
+)
+
+qa = RetrievalQA.from_chain_type(
+    llm=watsonx_llm, 
+    chain_type="stuff", 
+    retriever=retriever, 
+    return_source_documents=False
+)
+response = qa.invoke(query)
+print(f"Response: {response}")
 ```
