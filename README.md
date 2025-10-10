@@ -25,6 +25,14 @@
 10. **Udemy - LLM_ENGINEERING 강의 수강**
 11. **Coursera - Generative AI Engineering 수강**
 
-**프로젝트**
+## 프로젝트
 
 - 텍스트 + 이미지 기반 일기 감정 분석 토이 프로젝트
+
+## 폴더 구조
+
+`Courses`: Udemy, Coursera, Youtube에서 수강한 강의 요약 / 정리 / 실습 / 과제 모음
+
+`Basic_python_libraries`: Machine Learning에서 주로 사용되는 Python library의 함수 정리
+
+`Paper`: 읽었던 논문에 대한 간단 요약
